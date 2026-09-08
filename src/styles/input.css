@@ -1,0 +1,186 @@
+@import "tailwindcss";
+
+@source "../../public/**/*.html";
+@source "../../public/js/**/*.js";
+
+@theme {
+  --font-sans: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+}
+
+@layer base {
+  html {
+    @apply bg-slate-50;
+  }
+
+  html:not([data-auth-ready="true"]) body[data-auth="private"] {
+    visibility: hidden;
+  }
+
+  body {
+    @apply min-h-screen bg-slate-50 font-sans text-slate-800 antialiased;
+  }
+
+  [x-cloak] {
+    display: none !important;
+  }
+
+  button,
+  a,
+  input {
+    @apply outline-none;
+  }
+
+  button:focus-visible,
+  a:focus-visible,
+  input:focus-visible {
+    @apply ring-2 ring-emerald-500 ring-offset-2;
+  }
+}
+
+@layer components {
+  .posga-card {
+    @apply rounded-2xl border border-slate-200 bg-white shadow-sm;
+  }
+
+  .posga-nav-item {
+    @apply flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-slate-600 transition hover:bg-slate-100 hover:text-slate-950;
+  }
+
+  .posga-nav-item-active {
+    @apply bg-emerald-50 text-emerald-700 hover:bg-emerald-50 hover:text-emerald-700;
+  }
+
+  .posga-section-title {
+    @apply text-base font-semibold text-slate-900;
+  }
+
+  .posga-muted {
+    @apply text-sm text-slate-500;
+  }
+
+  .posga-badge {
+    @apply inline-flex items-center rounded-full px-2.5 py-1 text-xs font-semibold;
+  }
+
+  .posga-button-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-emerald-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-emerald-700 disabled:cursor-not-allowed disabled:bg-emerald-300;
+  }
+
+  .posga-button-secondary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-700 transition hover:bg-slate-50;
+  }
+
+  .posga-input {
+    @apply block w-full rounded-xl border border-slate-300 bg-white px-3.5 py-2.5 text-sm text-slate-900 placeholder:text-slate-400 focus:border-emerald-500;
+  }
+
+  .posga-label {
+    @apply mb-1.5 block text-sm font-semibold text-slate-700;
+  }
+
+  .posga-alert-error {
+    @apply rounded-xl border border-red-200 bg-red-50 px-4 py-3 text-sm text-red-700;
+  }
+}
+
+
+@layer components {
+  .posga-alert-success {
+    @apply rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700;
+  }
+
+  .posga-alert-warning {
+    @apply rounded-xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800;
+  }
+
+  .posga-state {
+    @apply flex min-h-32 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-6 text-center text-sm text-slate-500;
+  }
+
+  .posga-state-compact {
+    @apply flex min-h-20 items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 p-4 text-center text-xs text-slate-500;
+  }
+
+  .posga-loading-line {
+    @apply relative overflow-hidden rounded-full bg-slate-100;
+  }
+
+  .posga-loading-line::after {
+    content: "";
+    @apply absolute inset-y-0 w-1/3 bg-slate-200/80;
+    animation: posga-loading-slide 1.1s ease-in-out infinite;
+  }
+
+  .posga-scroll-x {
+    @apply max-w-full overflow-x-auto overscroll-x-contain;
+  }
+
+  .posga-mobile-bar {
+    @apply fixed inset-x-0 bottom-0 z-40 border-t border-slate-200 bg-white/95 px-2 py-2 shadow-[0_-8px_30px_rgba(15,23,42,0.08)] backdrop-blur lg:hidden;
+  }
+
+  .posga-mobile-bar-inner {
+    @apply mx-auto flex max-w-full gap-1 overflow-x-auto;
+  }
+
+  .posga-mobile-nav-link {
+    @apply flex min-w-[74px] shrink-0 flex-col items-center justify-center gap-1 rounded-xl px-2 py-1.5 text-[10px] font-semibold text-slate-500 transition hover:bg-slate-100;
+  }
+
+  .posga-mobile-nav-link-active {
+    @apply bg-emerald-50 text-emerald-700;
+  }
+
+  .posga-safe-bottom {
+    padding-bottom: calc(5rem + env(safe-area-inset-bottom));
+  }
+
+  .posga-touch-target {
+    min-height: 44px;
+    min-width: 44px;
+  }
+}
+
+@keyframes posga-loading-slide {
+  0% {
+    transform: translateX(-140%);
+  }
+
+  100% {
+    transform: translateX(420%);
+  }
+}
+
+@media (max-width: 639px) {
+  .posga-card {
+    @apply rounded-xl;
+  }
+
+  .posga-input {
+    @apply min-h-11 text-base;
+  }
+
+  .posga-button-primary,
+  .posga-button-secondary {
+    @apply min-h-11;
+  }
+
+  table {
+    font-size: 0.8125rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .posga-loading-line::after {
+    animation: none;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}

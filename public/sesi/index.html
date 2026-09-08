@@ -1,0 +1,355 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Sesi POSGA | POSGA</title>
+  <link rel="stylesheet" href="/css/output.css">
+  <script src="/js/utils.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/layout.js" defer></script>
+  <script src="/js/sesi.js" defer></script>
+  <script src="/js/alpine.js" defer></script>
+</head>
+<body data-page="sesi" data-auth="private" x-data="posgaLayout" x-init="init()">
+<aside class="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div class="flex h-20 shrink-0 items-center gap-3 border-b border-slate-100 px-6">
+      <div class="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-sm" aria-hidden="true">P</div>
+      <div class="min-w-0">
+        <p class="text-lg font-bold leading-5 text-slate-950">POSGA</p>
+        <p class="mt-1 truncate text-xs text-slate-500">Sistem Pelayanan Posyandu</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Navigasi utama">
+      <template x-for="item in navigasi" :key="item.id">
+        <a
+          :href="item.href"
+          class="posga-nav-item"
+          :class="halamanAktif===item.id?'posga-nav-item-active':''"
+          :aria-current="halamanAktif===item.id?'page':null"
+        >
+          <span class="size-5 shrink-0" x-html="iconSvg(item.icon)"></span>
+          <span class="truncate" x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+
+    <div class="shrink-0 border-t border-slate-100 px-4 py-4">
+      <div class="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+        <div class="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700" x-text="inisialUser"></div>
+        <div class="min-w-0">
+          <p class="truncate text-xs font-semibold text-slate-800" x-text="user.nama || user.username || 'Pengguna'"></p>
+          <p class="truncate text-[10px] text-slate-500" x-text="user.role==='admin'?'Administrator':'Petugas'"></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="min-h-screen lg:pl-64">
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95">
+      <div class="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div class="flex items-center gap-3">
+          <div><p class="text-xs font-semibold uppercase tracking-[.12em] text-emerald-600">Pelayanan</p><h1 class="text-xl font-bold text-slate-950">Sesi POSGA</h1></div>
+        </div>
+        <div class="relative">
+  <button
+    type="button"
+    class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+    x-text="inisialUser"
+    :title="user?.nama || user?.username || 'Akun POSGA'"
+    :aria-label="`Akun ${user?.nama || user?.username || 'POSGA'}`"
+    @click="akunTerbuka = !akunTerbuka"
+  ></button>
+
+  <div
+    x-cloak
+    x-show="akunTerbuka"
+    @click.outside="akunTerbuka = false"
+    x-transition
+    class="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+  >
+    <div class="border-b border-slate-100 px-3 py-2">
+      <p
+        class="truncate text-sm font-semibold text-slate-900"
+        x-text="user?.nama || user?.username || 'Pengguna'"
+      ></p>
+
+      <p
+        class="mt-0.5 truncate text-xs text-slate-500"
+        x-text="user?.role === 'admin' ? 'Administrator' : 'Petugas'"
+      ></p>
+    </div>
+
+    <button
+      type="button"
+      class="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+      @click="logout()"
+    >
+      Keluar
+    </button>
+  </div>
+</div>
+      </div>
+    </header>
+
+    <main x-data="sesiPage" x-init="init()" class="px-4 py-6 sm:px-6 lg:px-8">
+      <div class="mx-auto max-w-7xl">
+        <div x-cloak x-show="error" class="posga-alert-error mb-5" x-text="error"></div>
+        <div x-cloak x-show="success" class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700" x-text="success"></div>
+
+        <section class="posga-card p-5">
+          <div class="grid gap-3 lg:grid-cols-[1fr_1fr_auto]">
+            <select class="posga-input" x-model="lokasiId" @change="gantiLokasi()">
+              <option value="">Pilih lokasi</option>
+              <template x-for="x in lokasi" :key="x.id"><option :value="String(x.id)" x-text="x.nama"></option></template>
+            </select>
+            <select class="posga-input" x-model="posyanduId" @change="gantiPosyandu()" :disabled="!lokasiId">
+              <option value="">Pilih Posyandu</option>
+              <template x-for="x in posyandu" :key="x.id"><option :value="String(x.id)" x-text="x.nama"></option></template>
+            </select>
+            <button class="posga-button-primary" :disabled="!posyanduId" @click="bukaTambah()">+ Buat Sesi</button>
+          </div>
+        </section>
+
+        <section class="posga-card mt-6 overflow-hidden">
+          <div class="grid xl:grid-cols-[310px_minmax(0,1fr)] xl:items-stretch">
+            <!-- PANEL KIRI: DAFTAR SESI -->
+            <aside class="border-b border-slate-200 bg-slate-50/40 xl:relative xl:min-h-0 xl:border-b-0 xl:border-r">
+              <div class="xl:absolute xl:inset-0 xl:flex xl:min-h-0 xl:flex-col">
+              <div class="shrink-0 border-b border-slate-200 bg-white p-4">
+                <div class="flex items-start justify-between gap-3">
+                  <div>
+                    <h3 class="font-semibold text-slate-900">Daftar sesi</h3>
+                    <p class="mt-1 text-xs text-slate-500">Tanggal sesi dapat digulir.</p>
+                  </div>
+                  <span class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600" x-text="pagination.total || sesi.length"></span>
+                </div>
+
+                <div class="mt-3 space-y-2">
+                  <select class="posga-input" x-model="filter.status" @change="muatSesi(1)" :disabled="!posyanduId">
+                    <option value="">Semua status</option>
+                    <option value="aktif">Aktif</option>
+                    <option value="selesai">Selesai</option>
+                    <option value="dibatalkan">Dibatalkan</option>
+                  </select>
+
+                  <div class="grid grid-cols-2 gap-2">
+                    <input type="date" class="posga-input min-w-0" x-model="filter.tanggalMulai" @change="muatSesi(1)" :disabled="!posyanduId">
+                    <input type="date" class="posga-input min-w-0" x-model="filter.tanggalSelesai" @change="muatSesi(1)" :disabled="!posyanduId">
+                  </div>
+                </div>
+              </div>
+
+              <div class="min-h-0 overflow-y-auto overscroll-contain xl:flex-1">
+                <div x-show="!posyanduId" class="p-8 text-center text-sm text-slate-500">
+                  Pilih Posyandu terlebih dahulu.
+                </div>
+
+                <div x-show="loading" class="p-5 text-sm text-slate-500">
+                  Memuat...
+                </div>
+
+                <div x-cloak x-show="posyanduId && !loading && sesi.length===0" class="p-8 text-center text-sm text-slate-500">
+                  Belum ada sesi.
+                </div>
+
+                <div x-cloak x-show="!loading && sesi.length>0" class="divide-y divide-slate-200">
+                  <template x-for="x in sesi" :key="x.id">
+                    <button
+                      type="button"
+                      class="block w-full px-4 py-4 text-left transition hover:bg-white"
+                      :class="sesiAktif?.id===x.id?'bg-emerald-50 ring-1 ring-inset ring-emerald-200':'bg-transparent'"
+                      @click="bukaSesiById(x.id)"
+                    >
+                      <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0">
+                          <p class="font-semibold text-slate-900" x-text="formatTanggal(x.tanggalPosga)"></p>
+                          <p class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500" x-text="x.catatan||'Tanpa catatan'"></p>
+                        </div>
+                        <span class="posga-badge shrink-0" :class="statusClass(x.status)" x-text="statusLabel(x.status)"></span>
+                      </div>
+                    </button>
+                  </template>
+                </div>
+              </div>
+
+              <div x-cloak x-show="pagination.totalPages > 1" class="shrink-0 flex items-center justify-between border-t border-slate-200 bg-white p-3">
+                <button type="button" class="posga-button-secondary px-3 py-2" :disabled="!pagination.hasPrevious" @click="muatSesi(pagination.page-1)">←</button>
+                <span class="text-xs font-medium text-slate-500" x-text="`${pagination.page} / ${pagination.totalPages}`"></span>
+                <button type="button" class="posga-button-secondary px-3 py-2" :disabled="!pagination.hasNext" @click="muatSesi(pagination.page+1)">→</button>
+              </div>
+              </div>
+            </aside>
+
+            <!-- PANEL KANAN: DETAIL SESI -->
+            <div class="min-w-0 bg-white">
+              <template x-if="!sesiAktif && !loading">
+                <div class="grid min-h-[520px] place-items-center p-8 text-center">
+                  <div>
+                    <p class="font-semibold text-slate-800">Pilih sesi</p>
+                    <p class="mt-1 text-sm text-slate-500">Detail sesi dan kategori peserta akan tampil di sini.</p>
+                  </div>
+                </div>
+              </template>
+
+              <template x-if="sesiAktif">
+                <div>
+                  <!-- HEADER SESI -->
+                  <div class="border-b border-slate-200 p-5 sm:p-6">
+                    <div class="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <h3 class="text-xl font-bold text-slate-950" x-text="formatTanggal(sesiAktif.tanggalPosga)"></h3>
+                          <span class="posga-badge" :class="statusClass(sesiAktif.status)" x-text="statusLabel(sesiAktif.status)"></span>
+                        </div>
+
+                        <div class="mt-3 flex flex-wrap gap-x-5 gap-y-2 text-sm">
+                          <div>
+                            <span class="text-slate-400">Lokasi</span>
+                            <p class="font-semibold text-slate-800" x-text="lokasiAktifNama"></p>
+                          </div>
+                          <div>
+                            <span class="text-slate-400">Posyandu</span>
+                            <p class="font-semibold text-slate-800" x-text="posyanduAktifNama"></p>
+                          </div>
+                        </div>
+
+                        <p class="mt-3 text-sm text-slate-500" x-text="sesiAktif.catatan||'Tanpa catatan sesi'"></p>
+                        <p class="mt-2 text-xs text-slate-400"><span class="font-semibold text-slate-600" x-text="roster.length"></span> peserta terdaftar pada sesi</p>
+                      </div>
+
+                      <div
+                        class="flex shrink-0 flex-col items-stretch gap-2 self-start lg:ml-auto"
+                      >
+                        <template x-if="sesiAktif.status==='aktif'">
+                          <div class="flex flex-col gap-2">
+                            <button
+                              type="button"
+                              class="w-28 rounded-lg border border-slate-200 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                              @click="bukaEdit()"
+                            >
+                              Edit
+                            </button>
+
+                            <button
+                              type="button"
+                              class="w-28 rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                              @click="konfirmasi('batal')"
+                            >
+                              Batalkan
+                            </button>
+
+                            <button
+                              type="button"
+                              class="w-28 rounded-lg bg-emerald-600 px-3 py-2 text-xs font-semibold text-white hover:bg-emerald-700"
+                              @click="konfirmasi('selesai')"
+                            >
+                              Selesaikan
+                            </button>
+                          </div>
+                        </template>
+
+                        <button
+                          x-cloak
+                          x-show="$store.auth.user.role === 'admin' && sesiAktif.status !== 'aktif'"
+                          type="button"
+                          class="w-28 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                          @click="konfirmasi('hapus')"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- KATEGORI -->
+                  <div class="border-b border-slate-200 p-5 sm:p-6">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div class="min-w-0">
+                        <h3 class="font-semibold text-slate-900">Pilih kategori pemeriksaan</h3>
+                        <p class="mt-1 text-xs leading-5 text-slate-500">
+                          Hanya peserta kategori terpilih yang ditampilkan.
+                        </p>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="posga-button-primary shrink-0 px-4 py-2 text-xs"
+                        :disabled="!kategoriAktif"
+                        @click="bukaPemeriksaan(kategoriAktif)"
+                      >
+                        Pemeriksaan
+                      </button>
+                    </div>
+
+                    <div class="mt-5 grid grid-cols-1 gap-3 sm:grid-cols-2 2xl:grid-cols-4">
+                      <template x-for="x in kategori" :key="x[0]">
+                        <button
+                          type="button"
+                          class="min-w-0 rounded-2xl border px-4 py-3 text-left transition"
+                          :class="kategoriAktif===x[0]?'border-emerald-300 bg-emerald-50 shadow-sm':'border-slate-200 bg-white hover:border-emerald-200'"
+                          @click="pilihKategori(x[0])"
+                        >
+                          <div class="flex min-w-0 items-center justify-between gap-3">
+                            <div class="min-w-0">
+                              <p class="truncate text-sm font-semibold text-slate-900" x-text="x[1]"></p>
+                              <p class="mt-1 whitespace-nowrap text-xs text-slate-500">
+                                <span class="font-semibold" x-text="jumlahSelesai(x[0])"></span>/<span x-text="jumlahKategori(x[0])"></span> selesai
+                              </p>
+                            </div>
+                            <span class="grid size-8 shrink-0 place-items-center rounded-full bg-slate-100 text-xs font-bold text-slate-700" x-text="jumlahKategori(x[0])"></span>
+                          </div>
+                        </button>
+                      </template>
+                    </div>
+
+                  </div>
+
+                </div>
+              </template>
+            </div>
+          </div>
+        </section>
+      <div x-cloak x-show="modalForm" class="fixed inset-0 z-[70] grid place-items-center bg-slate-950/50 p-4">
+        <div class="w-full max-w-lg rounded-2xl bg-white p-6">
+          <h3 class="text-lg font-bold" x-text="modeForm==='tambah'?'Buat sesi POSGA':'Edit sesi POSGA'"></h3>
+          <form class="mt-5 space-y-4" @submit.prevent="simpanSesi()">
+            <div><label class="posga-label">Tanggal *</label><input type="date" class="posga-input" x-model="form.tanggalPosga"></div>
+            <div><label class="posga-label">Catatan</label><textarea class="posga-input min-h-28" x-model="form.catatan"></textarea></div>
+            <div class="flex justify-end gap-2"><button type="button" class="posga-button-secondary" @click="modalForm=false">Batal</button><button class="posga-button-primary" :disabled="saving" x-text="saving?'Menyimpan...':'Simpan'"></button></div>
+          </form>
+        </div>
+      </div>
+
+      <div x-cloak x-show="modalKonfirmasi" class="fixed inset-0 z-[80] grid place-items-center bg-slate-950/50 p-4">
+        <div class="w-full max-w-md rounded-2xl bg-white p-6">
+          <h3
+            class="text-lg font-bold"
+            x-text="aksiKonfirmasi==='selesai' ? 'Selesaikan sesi?' : (aksiKonfirmasi==='hapus' ? 'Hapus sesi permanen?' : 'Batalkan sesi?')"
+          ></h3>
+          <p
+            class="mt-2 text-sm leading-6 text-slate-500"
+            x-text="aksiKonfirmasi==='selesai'
+              ? 'Sesi dapat ditutup meskipun masih ada peserta yang belum diperiksa atau tidak hadir. Data yang sudah tersimpan tetap menjadi riwayat dan masih dapat dikoreksi.'
+              : (aksiKonfirmasi==='hapus'
+                  ? 'Sesi hanya dapat dihapus permanen jika belum memiliki aktivitas atau hasil klinis. Riwayat pelayanan yang sudah terbentuk tidak dapat dihapus.'
+                  : 'Pembatalan akan ditolak jika sudah ada aktivitas klinis.')"
+          ></p>
+          <div class="mt-6 flex justify-end gap-2">
+            <button class="posga-button-secondary" @click="modalKonfirmasi=false">Kembali</button>
+            <button
+              :class="aksiKonfirmasi==='hapus' ? 'rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700' : 'posga-button-primary'"
+              :disabled="processing"
+              @click="prosesKonfirmasi()"
+              x-text="processing ? 'Memproses...' : (aksiKonfirmasi==='selesai' ? 'Selesaikan' : (aksiKonfirmasi==='hapus' ? 'Hapus Permanen' : 'Batalkan Sesi'))"
+            ></button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

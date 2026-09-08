@@ -1,0 +1,34 @@
+{
+  "version": "7",
+  "dialect": "sqlite",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "6",
+      "when": 1788401362590,
+      "tag": "0000_good_mysterio",
+      "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1788404972940,
+      "tag": "0001_brave_doctor_octopus",
+      "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "6",
+      "when": 1788407781004,
+      "tag": "0002_redundant_shriek",
+      "breakpoints": true
+    },
+    {
+      "idx": 3,
+      "version": "6",
+      "when": 1788485995379,
+      "tag": "0003_special_sphinx",
+      "breakpoints": true
+    }
+  ]
+}

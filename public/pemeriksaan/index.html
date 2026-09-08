@@ -1,0 +1,950 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Pemeriksaan | POSGA</title>
+  <link rel="stylesheet" href="/css/output.css">
+  <script src="/js/utils.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/layout.js" defer></script>
+  <script src="/js/pemeriksaan.js" defer></script>
+  <script src="/js/alpine.js" defer></script>
+</head>
+
+<body data-page="sesi" data-auth="private" x-data="posgaLayout" x-init="init()">
+  <aside class="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div class="flex h-20 shrink-0 items-center gap-3 border-b border-slate-100 px-6">
+      <div class="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-sm" aria-hidden="true">P</div>
+      <div class="min-w-0">
+        <p class="text-lg font-bold leading-5 text-slate-950">POSGA</p>
+        <p class="mt-1 truncate text-xs text-slate-500">Sistem Pelayanan Posyandu</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Navigasi utama">
+      <template x-for="item in navigasi" :key="item.id">
+        <a
+          :href="item.href"
+          class="posga-nav-item"
+          :class="halamanAktif===item.id?'posga-nav-item-active':''"
+          :aria-current="halamanAktif===item.id?'page':null"
+        >
+          <span class="size-5 shrink-0" x-html="iconSvg(item.icon)"></span>
+          <span class="truncate" x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+
+    <div class="shrink-0 border-t border-slate-100 px-4 py-4">
+      <div class="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+        <div class="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700" x-text="inisialUser"></div>
+        <div class="min-w-0">
+          <p class="truncate text-xs font-semibold text-slate-800" x-text="user.nama || user.username || 'Pengguna'"></p>
+          <p class="truncate text-[10px] text-slate-500" x-text="user.role==='admin'?'Administrator':'Petugas'"></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="min-h-screen lg:pl-64">
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95">
+      <div class="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[.12em] text-emerald-600">Pelayanan</p>
+          <h1 class="text-xl font-bold text-slate-950">Pemeriksaan</h1>
+        </div>
+
+        <div class="relative">
+  <button
+    type="button"
+    class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+    x-text="inisialUser"
+    :title="user?.nama || user?.username || 'Akun POSGA'"
+    :aria-label="`Akun ${user?.nama || user?.username || 'POSGA'}`"
+    @click="akunTerbuka = !akunTerbuka"
+  ></button>
+
+  <div
+    x-cloak
+    x-show="akunTerbuka"
+    @click.outside="akunTerbuka = false"
+    x-transition
+    class="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+  >
+    <div class="border-b border-slate-100 px-3 py-2">
+      <p
+        class="truncate text-sm font-semibold text-slate-900"
+        x-text="user?.nama || user?.username || 'Pengguna'"
+      ></p>
+
+      <p
+        class="mt-0.5 truncate text-xs text-slate-500"
+        x-text="user?.role === 'admin' ? 'Administrator' : 'Petugas'"
+      ></p>
+    </div>
+
+    <button
+      type="button"
+      class="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+      @click="logout()"
+    >
+      Keluar
+    </button>
+  </div>
+</div>
+      </div>
+    </header>
+
+    <main
+      x-data="pemeriksaanPage"
+      x-init="init()"
+      class="px-4 py-5 sm:px-6 lg:px-8"
+    >
+      <div class="mx-auto max-w-7xl">
+        <div class="mb-4 flex flex-wrap items-center justify-between gap-3">
+          <div class="flex items-center gap-3">
+            <button
+              type="button"
+              class="posga-button-secondary"
+              @click="kembaliSesi()"
+            >
+              ← Sesi
+            </button>
+
+            <div>
+              <div class="flex flex-wrap items-center gap-2">
+                <h2
+                  class="text-xl font-bold text-slate-950"
+                  x-text="judulKategori"
+                ></h2>
+
+                <span
+                  class="rounded-full bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700"
+                  x-text="`${daftarPeserta.length} peserta`"
+                ></span>
+              </div>
+
+              <p class="mt-1 text-xs text-slate-500">
+                <span x-text="posyandu?.nama || `Posyandu #${sesi?.posyanduId || '-'}`"></span>
+                <span> · </span>
+                <span x-text="sesi?.tanggalPosga || '-'"></span>
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div
+          x-cloak
+          x-show="error"
+          class="posga-alert-error mb-4"
+          x-text="error"
+        ></div>
+
+        <div
+          x-cloak
+          x-show="success"
+          class="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+          x-text="success"
+        ></div>
+
+        <section class="posga-card overflow-hidden">
+          <div class="grid min-h-[620px] xl:grid-cols-[300px_minmax(0,1fr)]">
+            <!-- SIDEBAR PESERTA -->
+            <aside class="border-b border-slate-200 bg-slate-50/50 xl:relative xl:min-h-0 xl:border-b-0 xl:border-r">
+              <div class="xl:absolute xl:inset-0 xl:flex xl:min-h-0 xl:flex-col">
+                <div class="shrink-0 border-b border-slate-200 bg-white px-4 py-4">
+                  <div class="flex items-center justify-between gap-3">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-900">Daftar peserta</p>
+                      <p class="mt-1 text-xs text-slate-500" x-text="judulKategori"></p>
+                    </div>
+
+                    <span
+                      class="rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-600"
+                      x-text="daftarPeserta.length"
+                    ></span>
+                  </div>
+                </div>
+
+                <div class="min-h-0 overflow-y-auto">
+                  <div
+                    x-show="loading"
+                    class="p-6 text-sm text-slate-500"
+                  >
+                    Memuat peserta...
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="!loading && daftarPeserta.length===0"
+                    class="p-6 text-center"
+                  >
+                    <p class="text-sm font-semibold text-slate-800">
+                      Belum ada peserta
+                    </p>
+
+                    <p class="mt-2 text-xs leading-5 text-slate-500">
+                      Belum ada peserta kategori ini pada sesi tersebut.
+                    </p>
+
+                    <a
+                      class="posga-button-primary mt-4 inline-flex text-xs"
+                      :href="tambahPesertaUrl()"
+                    >
+                      Tambah Peserta
+                    </a>
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="!loading && daftarPeserta.length>0"
+                    class="divide-y divide-slate-200"
+                  >
+                    <template
+                      x-for="item in daftarPeserta"
+                      :key="item.pesertaSesiId || item.pesertaSesiPosgaId"
+                    >
+                      <button
+                        type="button"
+                        class="block w-full px-4 py-3.5 text-left transition hover:bg-white"
+                        :class="Number(pesertaAktif?.pesertaSesiId || pesertaAktif?.pesertaSesiPosgaId)===Number(item.pesertaSesiId || item.pesertaSesiPosgaId)?'bg-emerald-50 ring-1 ring-inset ring-emerald-200':''"
+                        @click="pilihPeserta(item)"
+                      >
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <p
+                              class="truncate text-sm font-semibold text-slate-900"
+                              x-text="item.nama"
+                            ></p>
+
+                            <p
+                              class="mt-1 truncate text-xs text-slate-500"
+                              x-text="item.pesertaNik"
+                            ></p>
+                          </div>
+
+                          <span
+                            class="shrink-0 rounded-full px-2 py-1 text-[10px] font-semibold"
+                            :class="statusPemeriksaanClass(item)"
+                            x-text="statusPemeriksaanLabel(item)"
+                          ></span>
+                        </div>
+                      </button>
+                    </template>
+                  </div>
+                </div>
+              </div>
+            </aside>
+
+            <!-- PANEL FORM -->
+            <div class="min-w-0 bg-white">
+              <div
+                x-show="!pesertaAktif && !loading"
+                class="grid min-h-[620px] place-items-center p-8 text-center"
+              >
+                <div>
+                  <p class="font-semibold text-slate-800">Belum ada peserta dipilih</p>
+                  <p class="mt-1 text-sm text-slate-500">Pilih nama peserta pada panel kiri.</p>
+                </div>
+              </div>
+
+              <template x-if="pesertaAktif">
+                <div>
+                  <!-- IDENTITAS + ACTIONS -->
+                  <div class="border-b border-slate-200 px-5 py-4 sm:px-6">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <h3
+                            class="text-lg font-bold text-slate-950"
+                            x-text="formData?.nama || pesertaAktif.nama"
+                          ></h3>
+
+                          <span
+                            class="rounded-full px-2.5 py-1 text-xs font-semibold"
+                            :class="statusPemeriksaanClass(pesertaAktif)"
+                            x-text="statusPemeriksaanLabel(pesertaAktif)"
+                          ></span>
+                        </div>
+
+                        <div class="mt-2 flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500">
+                          <span x-text="formData?.pesertaNik || pesertaAktif.pesertaNik"></span>
+                          <span x-text="formData?.umur ? formatUmur(formData.umur) : ''"></span>
+                          <span x-text="formData?.jenisKelamin==='L'?'Laki-laki':(formData?.jenisKelamin==='P'?'Perempuan':'')"></span>
+                        </div>
+                      </div>
+
+                      <div class="flex shrink-0 gap-2">
+                        <template x-if="!modeEdit">
+                          <button
+                            type="button"
+                            class="posga-button-primary px-4 py-2 text-xs"
+                            :disabled="!dapatEdit"
+                            @click="mulaiEdit()"
+                          >
+                            Edit
+                          </button>
+                        </template>
+
+                        <template x-if="modeEdit">
+                          <div class="flex gap-2">
+                            <button
+                              type="button"
+                              class="posga-button-secondary px-4 py-2 text-xs"
+                              :disabled="saving"
+                              @click="batalEdit()"
+                            >
+                              Batal
+                            </button>
+
+                            <button
+                              type="button"
+                              class="posga-button-primary px-4 py-2 text-xs"
+                              :disabled="saving"
+                              @click="simpanAktif()"
+                              x-text="saving?'Menyimpan...':'Simpan'"
+                            ></button>
+                          </div>
+                        </template>
+                      </div>
+                    </div>
+
+                    <div
+                      x-cloak
+                      x-show="formData && adaNotifikasiSkrining"
+                      class="mt-4 flex flex-col gap-3 rounded-xl border border-amber-200 bg-amber-50 p-3 sm:flex-row sm:items-center sm:justify-between"
+                    >
+                      <div>
+                        <p class="text-sm font-semibold text-amber-900">
+                          Skrining tersedia untuk peserta ini
+                        </p>
+                        <p
+                          class="mt-0.5 text-xs text-amber-700"
+                          x-text="jumlahSkriningWajibBelumTerisi > 0
+                            ? `${jumlahSkriningTersedia} skrining tersedia, ${jumlahSkriningWajibBelumTerisi} wajib belum diisi.`
+                            : `${jumlahSkriningTersedia} skrining tersedia sesuai rule/indikasi.`"
+                        ></p>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="shrink-0 rounded-lg bg-amber-900 px-3 py-2 text-xs font-semibold text-white hover:bg-amber-800"
+                        @click="gantiTab('skrining')"
+                      >
+                        Buka Skrining
+                      </button>
+                    </div>
+
+                    <div
+                      x-cloak
+                      x-show="formData"
+                      class="mt-4 flex gap-2 border-b border-slate-200"
+                    >
+                      <button
+                        type="button"
+                        class="border-b-2 px-3 py-2 text-sm font-semibold"
+                        :class="tabAktif==='pemeriksaan'?'border-slate-900 text-slate-950':'border-transparent text-slate-500 hover:text-slate-800'"
+                        @click="gantiTab('pemeriksaan')"
+                      >
+                        Pemeriksaan
+                      </button>
+
+                      <button
+                        type="button"
+                        class="border-b-2 px-3 py-2 text-sm font-semibold"
+                        :class="tabAktif==='skrining'?'border-slate-900 text-slate-950':'border-transparent text-slate-500 hover:text-slate-800'"
+                        @click="gantiTab('skrining')"
+                      >
+                        Skrining
+                        <span
+                          class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600"
+                          x-text="formData?.progres?.skrining?.wajib ?? 0"
+                        ></span>
+                      </button>
+
+                      <button
+                        type="button"
+                        class="border-b-2 px-3 py-2 text-sm font-semibold"
+                        :class="tabAktif==='konseling'?'border-slate-900 text-slate-950':'border-transparent text-slate-500 hover:text-slate-800'"
+                        @click="gantiTab('konseling')"
+                      >
+                        Konseling
+                        <span
+                          class="ml-1 rounded-full bg-slate-100 px-1.5 py-0.5 text-[10px] text-slate-600"
+                          x-text="formData?.progres?.konseling?.wajib ?? 0"
+                        ></span>
+                      </button>
+                    </div>
+
+                    <div
+                      x-cloak
+                      x-show="formData?.progres"
+                      class="mt-4"
+                    >
+                      <div class="flex items-center justify-between text-xs">
+                        <span class="font-medium text-slate-500" x-text="judulProgres"></span>
+                        <span
+                          class="font-semibold text-slate-700"
+                          x-text="`${progresTabAktif?.terisi ?? 0}/${progresTabAktif?.wajib ?? 0}`"
+                        ></span>
+                      </div>
+
+                      <div class="mt-2 h-2 overflow-hidden rounded-full bg-slate-100">
+                        <div
+                          class="h-full rounded-full bg-emerald-500 transition-all"
+                          :style="`width:${progresTabAktif?.persen ?? 0}%`"
+                        ></div>
+                      </div>
+                    </div>
+                  </div>
+
+                  <!-- FORM PEMERIKSAAN -->
+                  <div
+                    x-show="loadingForm"
+                    class="p-6 text-sm text-slate-500"
+                   role="status" aria-live="polite">
+                    Memuat form pelayanan...
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='pemeriksaan' && !loadingForm && formData && (formData.pemeriksaan?.length ?? 0)===0"
+                    class="p-8 text-center text-sm text-slate-500"
+                   role="status" aria-live="polite">
+                    Tidak ada indikator pemeriksaan untuk peserta ini.
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='pemeriksaan' && !loadingForm && formData && (formData.pemeriksaan?.length ?? 0)>0"
+                    class="grid gap-3 p-4 sm:p-5 lg:grid-cols-2"
+                   role="status" aria-live="polite">
+                    <template
+                      x-for="item in formData?.pemeriksaan || []"
+                      :key="item.indikatorId"
+                    >
+                      <div class="min-w-0 rounded-xl border border-slate-200 bg-white p-3">
+                        <div class="grid min-w-0 gap-2 sm:grid-cols-2 sm:items-center">
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <p
+                              class="break-words text-xs font-semibold leading-4 text-slate-900"
+                              x-text="labelSingkat(item)"
+                            ></p>
+
+                            <span
+                              x-show="item.wajib"
+                              class="text-xs font-bold text-red-500"
+                            >
+                              *
+                            </span>
+
+                            <span
+                              x-show="item.derived"
+                              class="rounded bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700"
+                            >
+                              Otomatis
+                            </span>
+                          </div>
+
+                          <p
+                            x-show="item.deskripsi"
+                            class="mt-0.5 text-[11px] leading-4 text-slate-500"
+                            x-text="item.deskripsi"
+                          ></p>
+                        </div>
+
+                        <!-- READONLY -->
+                        <div class="min-w-0" x-show="!modeEdit || item.derived">
+                          <div class="min-h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                            <span x-text="tampilNilai(item)"></span>
+                          </div>
+                        </div>
+
+                        <!-- EDITABLE -->
+                        <div class="min-w-0" x-show="modeEdit && !item.derived">
+                          <template x-if="item.tipeInput==='number'">
+                            <div class="flex items-center gap-2">
+                              <input
+                                type="number"
+                                step="any"
+                                class="posga-input min-w-0 flex-1"
+                                x-model="nilai[item.indikatorId]"
+                              >
+                              <span
+                                x-show="item.satuan"
+                                class="shrink-0 text-xs font-medium text-slate-500"
+                                x-text="item.satuan"
+                              ></span>
+                            </div>
+                          </template>
+
+                          <template x-if="item.tipeInput==='text'">
+                            <input
+                              type="text"
+                              class="posga-input"
+                              x-model="nilai[item.indikatorId]"
+                            >
+                          </template>
+
+                          <template x-if="item.tipeInput==='date'">
+                            <input
+                              type="date"
+                              class="posga-input"
+                              x-model="nilai[item.indikatorId]"
+                            >
+                          </template>
+
+                          <template x-if="item.tipeInput==='boolean'">
+                            <select
+                              class="posga-input"
+                              x-model="nilai[item.indikatorId]"
+                            >
+                              <option value="">Belum diisi</option>
+                              <option value="true">Ya</option>
+                              <option value="false">Tidak</option>
+                            </select>
+                          </template>
+
+                          <template x-if="item.tipeInput==='select'">
+                            <select
+                              class="posga-input"
+                              x-model="nilai[item.indikatorId]"
+                            >
+                              <option value="">Belum diisi</option>
+                              <template
+                                x-for="opsi in opsiItem(item)"
+                                :key="opsi.id"
+                              >
+                                <option
+                                  :value="String(opsi.id)"
+                                  x-text="opsi.label"
+                                ></option>
+                              </template>
+                            </select>
+                          </template>
+
+                          <template x-if="item.tipeInput==='multiselect'">
+                            <div class="grid gap-2 sm:grid-cols-2">
+                              <template
+                                x-for="opsi in opsiItem(item)"
+                                :key="opsi.id"
+                              >
+                                <label class="flex cursor-pointer items-center gap-2 rounded-xl border border-slate-200 px-3 py-2.5 text-sm hover:bg-slate-50">
+                                  <input
+                                    type="checkbox"
+                                    :checked="multiselectDipilih(item.indikatorId, opsi.id)"
+                                    @change="toggleMultiselect(item.indikatorId, opsi.id)"
+                                  >
+                                  <span x-text="opsi.label"></span>
+                                </label>
+                              </template>
+                            </div>
+                          </template>
+                        </div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='skrining' && formData"
+                    class="flex justify-end px-4 pt-4 sm:px-5"
+                  >
+                    <button
+                      type="button"
+                      class="rounded-lg border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-700 hover:bg-slate-50"
+                      @click="bukaRiwayatSkrining()"
+                    >
+                      Riwayat Skrining
+                    </button>
+                  </div>
+
+                  <!-- FORM SKRINING -->
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='skrining' && !loadingForm && formData && (formData.skrining?.length ?? 0)===0"
+                    class="p-8 text-center text-sm text-slate-500"
+                   role="status" aria-live="polite">
+                    Tidak ada indikator skrining yang berlaku untuk peserta ini pada sesi sekarang.
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='skrining' && !loadingForm && formData && (formData.skrining?.length ?? 0)>0"
+                    class="grid gap-3 p-4 sm:p-5 lg:grid-cols-2"
+                   role="status" aria-live="polite">
+                    <template
+                      x-for="item in formData?.skrining || []"
+                      :key="`skrining-${item.indikatorId}`"
+                    >
+                      <div
+                        class="min-w-0 rounded-xl border p-3"
+                        :class="item.hasilSaatIni?'border-emerald-200 bg-emerald-50/30':'border-slate-200 bg-white'"
+                      >
+                        <div class="grid min-w-0 gap-2 sm:grid-cols-2 sm:items-start">
+                          <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                              <p
+                                class="break-words text-xs font-semibold leading-4 text-slate-900"
+                                x-text="item.nama"
+                              ></p>
+
+                              <span
+                                x-show="item.wajib && skriningBisaDiisi(item)"
+                                class="text-xs font-bold text-red-500"
+                              >
+                                *
+                              </span>
+                            </div>
+
+                            <div class="mt-1 flex flex-wrap gap-1.5">
+                              <span
+                                class="rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                                :class="skriningStatusClass(item)"
+                                x-text="skriningStatusLabel(item)"
+                              ></span>
+
+                              <span
+                                class="rounded bg-slate-100 px-1.5 py-0.5 text-[10px] font-semibold text-slate-600"
+                                x-text="frekuensiLabel(item)"
+                              ></span>
+                            </div>
+
+                            <p
+                              x-show="!item.hasilSaatIni && keteranganSkrining(item)"
+                              class="mt-1 text-[11px] leading-4 text-slate-500"
+                              x-text="keteranganSkrining(item)"
+                            ></p>
+                          </div>
+
+                          <!-- READONLY -->
+                          <div
+                            class="min-w-0"
+                            x-show="!modeEdit || !skriningBisaDiisi(item)"
+                          >
+                            <div
+                              class="min-h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-medium leading-5 text-slate-800"
+                              :title="item.alasan || ''"
+                            >
+                              <span x-text="tampilNilaiSkrining(item)"></span>
+                            </div>
+                          </div>
+
+                          <!-- EDITABLE -->
+                          <div
+                            class="min-w-0"
+                            x-show="modeEdit && skriningBisaDiisi(item)"
+                          >
+                            <template x-if="item.tipeInput==='number'">
+                              <div class="flex items-center gap-2">
+                                <input
+                                  type="number"
+                                  step="any"
+                                  class="posga-input min-w-0 flex-1"
+                                  x-model="nilaiSkrining[item.indikatorId]"
+                                >
+                                <span
+                                  x-show="item.satuan"
+                                  class="shrink-0 text-xs font-medium text-slate-500"
+                                  x-text="item.satuan"
+                                ></span>
+                              </div>
+                            </template>
+
+                            <template x-if="item.tipeInput==='text'">
+                              <input
+                                type="text"
+                                class="posga-input"
+                                x-model="nilaiSkrining[item.indikatorId]"
+                              >
+                            </template>
+
+                            <template x-if="item.tipeInput==='boolean'">
+                              <select
+                                class="posga-input"
+                                x-model="nilaiSkrining[item.indikatorId]"
+                              >
+                                <option value="">Belum diisi</option>
+                                <option value="true">Ya</option>
+                                <option value="false">Tidak</option>
+                              </select>
+                            </template>
+
+                            <template x-if="item.tipeInput==='select'">
+                              <select
+                                class="posga-input"
+                                x-model="nilaiSkrining[item.indikatorId]"
+                              >
+                                <option value="">Belum diisi</option>
+                                <template
+                                  x-for="opsi in opsiItem(item)"
+                                  :key="opsi.id"
+                                >
+                                  <option
+                                    :value="String(opsi.id)"
+                                    x-text="opsi.label"
+                                  ></option>
+                                </template>
+                              </select>
+                            </template>
+
+                            <template x-if="item.tipeInput==='date' || item.tipeInput==='multiselect'">
+                              <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                                Tipe input skrining ini belum didukung oleh penyimpanan skrining.
+                              </div>
+                            </template>
+                          </div>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- FORM KONSELING -->
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='konseling' && !loadingForm && formData && (formData.konseling?.length ?? 0)===0"
+                    class="p-8 text-center text-sm text-slate-500"
+                   role="status" aria-live="polite">
+                    Tidak ada konseling yang berlaku untuk peserta ini pada sesi sekarang.
+                  </div>
+
+                  <div
+                    x-cloak
+                    x-show="tabAktif==='konseling' && !loadingForm && formData && (formData.konseling?.length ?? 0)>0"
+                    class="grid gap-3 p-4 sm:p-5 lg:grid-cols-2"
+                   role="status" aria-live="polite">
+                    <template
+                      x-for="item in formData?.konseling || []"
+                      :key="`konseling-${item.indikatorId}`"
+                    >
+                      <div
+                        class="min-w-0 rounded-xl border p-3"
+                        :class="item.hasilSaatIni?'border-emerald-200 bg-emerald-50/30':'border-slate-200 bg-white'"
+                      >
+                        <div class="flex items-start justify-between gap-3">
+                          <div class="min-w-0">
+                            <div class="flex flex-wrap items-center gap-2">
+                              <p
+                                class="break-words text-xs font-semibold leading-4 text-slate-900"
+                                x-text="item.nama"
+                              ></p>
+
+                              <span
+                                x-show="item.wajib"
+                                class="text-xs font-bold text-red-500"
+                              >
+                                *
+                              </span>
+                            </div>
+
+                            <p
+                              x-show="item.alasan"
+                              class="mt-1 text-[11px] leading-4 text-slate-500"
+                              x-text="item.alasan"
+                            ></p>
+                          </div>
+
+                          <span
+                            class="shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold"
+                            :class="item.hasilSaatIni?'bg-emerald-100 text-emerald-700':'bg-amber-100 text-amber-700'"
+                            x-text="item.hasilSaatIni?'Sudah diberikan':'Belum diberikan'"
+                          ></span>
+                        </div>
+
+                        <div
+                          class="mt-3"
+                          x-show="!modeEdit || !konselingBisaDiisi(item)"
+                        >
+                          <div class="min-h-9 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-800">
+                            <span x-text="tampilNilaiKonseling(item)"></span>
+                          </div>
+                        </div>
+
+                        <div
+                          class="mt-3"
+                          x-show="modeEdit && konselingBisaDiisi(item)"
+                        >
+                          <template x-if="item.tipeInput==='select'">
+                            <select
+                              class="posga-input"
+                              x-model="nilaiKonseling[item.indikatorId]"
+                            >
+                              <option value="">Pilih konseling</option>
+                              <template
+                                x-for="opsi in opsiItem(item)"
+                                :key="opsi.id"
+                              >
+                                <option
+                                  :value="String(opsi.id)"
+                                  x-text="opsi.label"
+                                ></option>
+                              </template>
+                            </select>
+                          </template>
+
+                          <template x-if="item.tipeInput==='multiselect'">
+                            <div class="grid gap-2">
+                              <template
+                                x-for="opsi in opsiItem(item)"
+                                :key="opsi.id"
+                              >
+                                <label class="flex cursor-pointer items-start gap-2 rounded-lg border border-slate-200 p-2 hover:bg-slate-50">
+                                  <input
+                                    type="checkbox"
+                                    class="mt-0.5"
+                                    :checked="konselingDipilih(item, opsi)"
+                                    @change="toggleKonseling(item, opsi, $event.target.checked)"
+                                  >
+                                  <span
+                                    class="text-xs leading-5 text-slate-700"
+                                    x-text="opsi.label"
+                                  ></span>
+                                </label>
+                              </template>
+                            </div>
+                          </template>
+
+                          <template x-if="item.tipeInput!=='select' && item.tipeInput!=='multiselect'">
+                            <div class="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700">
+                              Tipe input konseling ini belum didukung oleh service konseling.
+                            </div>
+                          </template>
+                        </div>
+                      </div>
+                    </template>
+                  </div>
+
+                  <!-- STICKY ACTION BOTTOM -->
+                  <div
+                    x-cloak
+                    x-show="modeEdit"
+                    class="sticky bottom-0 flex justify-end gap-2 border-t border-slate-200 bg-white/95 px-5 py-3 backdrop-blur sm:px-6"
+                  >
+                    <button
+                      type="button"
+                      class="posga-button-secondary"
+                      :disabled="saving"
+                      @click="batalEdit()"
+                    >
+                      Batal
+                    </button>
+
+                    <button
+                      type="button"
+                      class="posga-button-primary"
+                      :disabled="saving"
+                      @click="simpanAktif()"
+                      x-text="saving?'Menyimpan...':'Simpan'"
+                    ></button>
+                  </div>
+                </div>
+              </template>
+            </div>
+          </div>
+        </section>
+      </div>
+    </main>
+  </div>
+    <!-- RIWAYAT SKRINING QUICK VIEW -->
+    <div
+      x-cloak
+      x-show="riwayatSkriningTerbuka"
+      class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4"
+      @keydown.escape.window="tutupRiwayatSkrining()"
+    >
+      <div
+        class="max-h-[85vh] w-full max-w-3xl overflow-hidden rounded-2xl bg-white shadow-2xl"
+        @click.outside="tutupRiwayatSkrining()"
+      >
+        <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+          <div>
+            <h3 class="text-base font-bold text-slate-950">
+              Riwayat Skrining
+            </h3>
+            <p
+              class="mt-0.5 text-xs text-slate-500"
+              x-text="formData ? `${formData.nama} · ${formData.pesertaNik}` : ''"
+            ></p>
+          </div>
+
+          <button
+            type="button"
+            class="rounded-lg px-3 py-2 text-sm font-semibold text-slate-500 hover:bg-slate-100"
+            @click="tutupRiwayatSkrining()"
+          >
+            Tutup
+          </button>
+        </div>
+
+        <div class="max-h-[70vh] overflow-y-auto p-5">
+          <div
+            x-show="loadingRiwayatSkrining"
+            class="py-8 text-center text-sm text-slate-500"
+           role="status" aria-live="polite">
+            Memuat riwayat...
+          </div>
+
+          <div
+            x-show="errorRiwayatSkrining"
+            class="rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-700"
+            x-text="errorRiwayatSkrining"
+          ></div>
+
+          <div
+            x-show="!loadingRiwayatSkrining && !errorRiwayatSkrining && riwayatSkrining.length===0"
+            class="py-8 text-center text-sm text-slate-500"
+           role="status" aria-live="polite">
+            Belum ada riwayat skrining peserta.
+          </div>
+
+          <div
+            x-show="!loadingRiwayatSkrining && riwayatSkrining.length>0"
+            class="grid gap-3"
+           role="status" aria-live="polite">
+            <template
+              x-for="item in riwayatSkrining"
+              :key="item.id"
+            >
+              <div class="rounded-xl border border-slate-200 p-3">
+                <div class="flex flex-col gap-2 sm:flex-row sm:items-start sm:justify-between">
+                  <div>
+                    <p
+                      class="text-sm font-semibold text-slate-900"
+                      x-text="item.indikatorNama"
+                    ></p>
+                    <p
+                      class="mt-1 text-sm text-slate-700"
+                      x-text="tampilHasilRiwayatSkrining(item)"
+                    ></p>
+                  </div>
+
+                  <div class="text-left text-[11px] text-slate-500 sm:text-right">
+                    <p x-text="item.tanggalSkrining"></p>
+                    <p
+                      x-text="item.sumber==='eksternal'
+                        ? (item.namaFasilitas ? `Eksternal · ${item.namaFasilitas}` : 'Eksternal')
+                        : 'POSGA'"
+                    ></p>
+                  </div>
+                </div>
+
+                <p
+                  x-show="item.catatan"
+                  class="mt-2 border-t border-slate-100 pt-2 text-xs text-slate-500"
+                  x-text="item.catatan"
+                ></p>
+              </div>
+            </template>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+</body>
+</html>
+

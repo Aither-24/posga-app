@@ -1,0 +1,564 @@
+<!doctype html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Reproduksi | POSGA</title>
+  <link rel="stylesheet" href="/css/output.css">
+  <script src="/js/utils.js" defer></script>
+  <script src="/js/api.js" defer></script>
+  <script src="/js/auth.js" defer></script>
+  <script src="/js/layout.js" defer></script>
+  <script src="/js/reproduksi.js" defer></script>
+  <script src="/js/alpine.js" defer></script>
+</head>
+
+<body data-page="reproduksi" data-auth="private" x-data="posgaLayout" x-init="init()">
+  <aside class="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div class="flex h-20 shrink-0 items-center gap-3 border-b border-slate-100 px-6">
+      <div class="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-sm" aria-hidden="true">P</div>
+      <div class="min-w-0">
+        <p class="text-lg font-bold leading-5 text-slate-950">POSGA</p>
+        <p class="mt-1 truncate text-xs text-slate-500">Sistem Pelayanan Posyandu</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Navigasi utama">
+      <template x-for="item in navigasi" :key="item.id">
+        <a
+          :href="item.href"
+          class="posga-nav-item"
+          :class="halamanAktif===item.id?'posga-nav-item-active':''"
+          :aria-current="halamanAktif===item.id?'page':null"
+        >
+          <span class="size-5 shrink-0" x-html="iconSvg(item.icon)"></span>
+          <span class="truncate" x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+
+    <div class="shrink-0 border-t border-slate-100 px-4 py-4">
+      <div class="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+        <div class="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700" x-text="inisialUser"></div>
+        <div class="min-w-0">
+          <p class="truncate text-xs font-semibold text-slate-800" x-text="user.nama || user.username || 'Pengguna'"></p>
+          <p class="truncate text-[10px] text-slate-500" x-text="user.role==='admin'?'Administrator':'Petugas'"></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <div class="min-h-screen lg:pl-64">
+    <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95">
+      <div class="flex h-20 items-center justify-between px-4 sm:px-6 lg:px-8">
+        <div>
+          <p class="text-xs font-semibold uppercase tracking-[.12em] text-emerald-600">Pelayanan</p>
+          <h1 class="text-xl font-bold">Reproduksi</h1>
+        </div>
+
+        <div class="relative">
+  <button
+    type="button"
+    class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+    x-text="inisialUser"
+    :title="user?.nama || user?.username || 'Akun POSGA'"
+    :aria-label="`Akun ${user?.nama || user?.username || 'POSGA'}`"
+    @click="akunTerbuka = !akunTerbuka"
+  ></button>
+
+  <div
+    x-cloak
+    x-show="akunTerbuka"
+    @click.outside="akunTerbuka = false"
+    x-transition
+    class="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+  >
+    <div class="border-b border-slate-100 px-3 py-2">
+      <p
+        class="truncate text-sm font-semibold text-slate-900"
+        x-text="user?.nama || user?.username || 'Pengguna'"
+      ></p>
+
+      <p
+        class="mt-0.5 truncate text-xs text-slate-500"
+        x-text="user?.role === 'admin' ? 'Administrator' : 'Petugas'"
+      ></p>
+    </div>
+
+    <button
+      type="button"
+      class="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+      @click="logout()"
+    >
+      Keluar
+    </button>
+  </div>
+</div>
+      </div>
+    </header>
+
+    <main
+      x-data="reproduksiPage"
+      x-init="init()"
+      class="px-4 py-5 sm:px-6 lg:px-8"
+    >
+      <div class="mx-auto max-w-[1500px]">
+        <div x-cloak x-show="error" class="posga-alert-error mb-4" role="alert" aria-live="assertive" x-text="error"></div>
+        <div x-cloak x-show="success" class="posga-alert-success mb-4" role="status" aria-live="polite" x-text="success"></div>
+
+        <div class="grid min-h-[calc(100vh-7rem)] gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
+          <!-- PESERTA PEREMPUAN -->
+          <section class="posga-card flex min-h-0 flex-col overflow-hidden">
+            <div class="border-b border-slate-200 p-4">
+              <h2 class="font-bold text-slate-950">Peserta perempuan</h2>
+              <p class="mt-0.5 text-xs text-slate-500">Pilih peserta untuk mengelola kehamilan dan nifas.</p>
+
+              <input
+                type="search"
+                class="posga-input mt-3"
+                placeholder="Cari nama atau NIK..."
+                x-model="pencarian"
+                @input.debounce.350ms="muatPeserta()"
+              >
+            </div>
+
+            <div x-show="loadingPeserta" class="p-5 text-sm text-slate-500" role="status" aria-live="polite">Memuat peserta...</div>
+
+            <div
+              x-cloak
+              x-show="!loadingPeserta && peserta.length===0"
+              class="p-6 text-center text-sm text-slate-500"
+             role="status" aria-live="polite">
+              Peserta perempuan tidak ditemukan.
+            </div>
+
+            <div
+              x-cloak
+              x-show="!loadingPeserta && peserta.length>0"
+              class="min-h-0 flex-1 overflow-y-auto p-2"
+             role="status" aria-live="polite">
+              <template x-for="item in peserta" :key="item.nik">
+                <button
+                  type="button"
+                  class="mb-1 w-full rounded-xl border px-3 py-3 text-left transition"
+                  :class="pesertaAktif?.nik===item.nik
+                    ? 'border-emerald-300 bg-emerald-50'
+                    : 'border-transparent hover:border-slate-200 hover:bg-slate-50'"
+                  @click="pilihPeserta(item)"
+                >
+                  <p class="truncate text-sm font-semibold text-slate-900" x-text="item.nama"></p>
+                  <p class="mt-0.5 truncate text-[11px] text-slate-500" x-text="item.nik"></p>
+                  <p class="mt-1 truncate text-[11px] text-slate-500" x-text="item.posyanduNama || 'Belum ada Posyandu'"></p>
+                </button>
+              </template>
+            </div>
+          </section>
+
+          <!-- WORKSPACE -->
+          <section class="posga-card min-w-0 overflow-hidden">
+            <div
+              x-show="!pesertaAktif"
+              class="grid min-h-[520px] place-items-center p-8 text-center"
+            >
+              <div>
+                <p class="font-semibold text-slate-800">Pilih peserta</p>
+                <p class="mt-1 text-sm text-slate-500">Data reproduksi akan muncul di sini.</p>
+              </div>
+            </div>
+
+            <div x-cloak x-show="pesertaAktif">
+              <div class="border-b border-slate-200 p-4 sm:p-5">
+                <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                  <div class="min-w-0">
+                    <p class="truncate text-lg font-bold text-slate-950" x-text="pesertaAktif?.nama"></p>
+                    <p class="mt-1 text-xs text-slate-500">
+                      <span x-text="pesertaAktif?.nik"></span>
+                      <span class="mx-1">•</span>
+                      <span x-text="formatTanggal(pesertaAktif?.tanggalLahir)"></span>
+                    </p>
+                  </div>
+
+                  <div class="flex flex-wrap gap-2">
+                    <span
+                      x-show="reproduksi?.kehamilanAktif"
+                      class="rounded-full bg-pink-100 px-2.5 py-1 text-xs font-semibold text-pink-700"
+                    >
+                      Kehamilan aktif
+                    </span>
+
+                    <span
+                      x-show="reproduksi?.nifasAktif"
+                      class="rounded-full bg-purple-100 px-2.5 py-1 text-xs font-semibold text-purple-700"
+                    >
+                      Nifas aktif
+                    </span>
+                  </div>
+                </div>
+
+                <div class="mt-4 flex gap-2 border-b border-slate-200">
+                  <button
+                    type="button"
+                    class="border-b-2 px-3 py-2 text-sm font-semibold"
+                    :class="tabAktif==='kehamilan'?'border-slate-900 text-slate-950':'border-transparent text-slate-500'"
+                    @click="tabAktif='kehamilan'"
+                  >
+                    Kehamilan
+                  </button>
+
+                  <button
+                    type="button"
+                    class="border-b-2 px-3 py-2 text-sm font-semibold"
+                    :class="tabAktif==='nifas'?'border-slate-900 text-slate-950':'border-transparent text-slate-500'"
+                    @click="tabAktif='nifas'"
+                  >
+                    Nifas
+                  </button>
+                </div>
+              </div>
+
+              <div x-show="loadingData" class="p-6 text-sm text-slate-500" role="status" aria-live="polite">Memuat data reproduksi...</div>
+
+              <!-- KEHAMILAN -->
+              <div x-cloak x-show="!loadingData && tabAktif==='kehamilan'" class="p-4 sm:p-5" role="status" aria-live="polite">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 class="font-bold text-slate-950">Riwayat Kehamilan</h3>
+                    <p class="mt-0.5 text-xs text-slate-500">Satu peserta hanya boleh memiliki satu kehamilan aktif.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="posga-button-primary"
+                    x-show="!reproduksi?.kehamilanAktif"
+                    @click="bukaKehamilanBaru()"
+                  >
+                    + Kehamilan
+                  </button>
+                </div>
+
+                <div x-show="(reproduksi?.kehamilan?.length ?? 0)===0" class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+                  Belum ada riwayat kehamilan.
+                </div>
+
+                <div class="grid gap-3">
+                  <template x-for="item in riwayatKehamilanTerbalik" :key="item.id">
+                    <article class="rounded-xl border border-slate-200 p-4">
+                      <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <p class="font-bold text-slate-900" x-text="`${formatTanggal(item.tanggalMulai)}${item.tanggalSelesai ? ` – ${formatTanggal(item.tanggalSelesai)}` : ''}`"></p>
+                            <span
+                              class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                              :class="statusEpisodeClass(item.status)"
+                              x-text="labelStatusEpisode(item.status)"
+                            ></span>
+                          </div>
+
+                          <div class="mt-3 grid gap-x-6 gap-y-1 text-xs text-slate-600 sm:grid-cols-2">
+                            <p>HPHT: <strong x-text="formatTanggal(item.hpht)"></strong></p>
+                            <p>HPL: <strong x-text="formatTanggal(item.hpl)"></strong></p>
+                            <p>BB sebelum hamil: <strong x-text="item.bbSebelumHamilKg ? `${item.bbSebelumHamilKg} kg` : '-'"></strong></p>
+                            <p>TB: <strong x-text="item.tbCm ? `${item.tbCm} cm` : '-'"></strong></p>
+                            <p>LiLA awal: <strong x-text="item.lilaAwalCm ? `${item.lilaAwalCm} cm` : '-'"></strong></p>
+                          </div>
+
+                          <p x-show="item.catatan" class="mt-2 text-xs text-slate-500" x-text="item.catatan"></p>
+                        </div>
+
+                        <div class="flex shrink-0 flex-wrap gap-2">
+                          <button
+                            type="button"
+                            class="posga-button-secondary"
+                            @click="bukaEditKehamilan(item)"
+                          >
+                            Edit
+                          </button>
+
+                          <button
+                            type="button"
+                            class="posga-button-secondary"
+                            x-show="item.status==='aktif'"
+                            @click="selesaikanKehamilan(item)"
+                          >
+                            Selesai
+                          </button>
+
+                          <button
+                            type="button"
+                            class="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50"
+                            x-show="item.status==='aktif'"
+                            @click="batalkanKehamilan(item)"
+                          >
+                            Batalkan
+                          </button>
+                        </div>
+                      </div>
+                    </article>
+                  </template>
+                </div>
+              </div>
+
+              <!-- NIFAS -->
+              <div x-cloak x-show="!loadingData && tabAktif==='nifas'" class="p-4 sm:p-5" role="status" aria-live="polite">
+                <div class="mb-4 flex items-center justify-between gap-3">
+                  <div>
+                    <h3 class="font-bold text-slate-950">Riwayat Nifas</h3>
+                    <p class="mt-0.5 text-xs text-slate-500">Persalinan, tindakan, dan komplikasi tercatat dalam episode nifas.</p>
+                  </div>
+
+                  <button
+                    type="button"
+                    class="posga-button-primary"
+                    x-show="!reproduksi?.nifasAktif"
+                    @click="bukaNifasBaru()"
+                  >
+                    + Nifas
+                  </button>
+                </div>
+
+                <div x-show="(reproduksi?.nifas?.length ?? 0)===0" class="rounded-xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500">
+                  Belum ada riwayat nifas.
+                </div>
+
+                <div class="grid gap-3">
+                  <template x-for="item in riwayatNifasTerbalik" :key="item.id">
+                    <article class="rounded-xl border border-slate-200 p-4">
+                      <div class="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                        <div>
+                          <div class="flex flex-wrap items-center gap-2">
+                            <p class="font-bold text-slate-900" x-text="`${formatTanggal(item.tanggalMulai)}${item.tanggalSelesai ? ` – ${formatTanggal(item.tanggalSelesai)}` : ''}`"></p>
+                            <span
+                              class="rounded-full px-2 py-0.5 text-[10px] font-semibold"
+                              :class="statusEpisodeClass(item.status)"
+                              x-text="labelStatusEpisode(item.status)"
+                            ></span>
+                          </div>
+
+                          <div class="mt-3 grid gap-x-6 gap-y-1 text-xs text-slate-600 sm:grid-cols-2">
+                            <p>Melahirkan: <strong x-text="formatTanggal(item.tanggalMelahirkan)"></strong></p>
+                            <p>Jam: <strong x-text="item.jamBersalin || '-'"></strong></p>
+                            <p>Cara: <strong x-text="labelCaraPersalinan(item.caraPersalinan)"></strong></p>
+                            <p>Vitamin A: <strong x-text="labelBoolean(item.vitaminA)"></strong></p>
+                            <p>ASI eksklusif: <strong x-text="labelBoolean(item.asiEksklusif)"></strong></p>
+                          </div>
+
+                          <p x-show="item.catatan" class="mt-2 text-xs text-slate-500" x-text="item.catatan"></p>
+                        </div>
+
+                        <div class="flex shrink-0 flex-wrap gap-2">
+                          <button type="button" class="posga-button-secondary" @click="bukaDetailNifas(item)">Detail</button>
+                          <button type="button" class="posga-button-secondary" @click="bukaEditNifas(item)">Edit</button>
+                          <button type="button" class="posga-button-secondary" x-show="item.status==='aktif'" @click="selesaikanNifas(item)">Selesai</button>
+                          <button type="button" class="rounded-lg border border-red-200 bg-white px-3 py-2 text-xs font-semibold text-red-600 hover:bg-red-50" x-show="item.status==='aktif'" @click="batalkanNifas(item)">Batalkan</button>
+                        </div>
+                      </div>
+                    </article>
+                  </template>
+                </div>
+              </div>
+            </div>
+          </section>
+        </div>
+      </div>
+
+      <!-- MODAL KEHAMILAN -->
+      <div x-cloak x-show="modalKehamilan" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" @keydown.escape.window="modalKehamilan=false">
+        <form class="max-h-[92vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl" @submit.prevent="simpanKehamilan()">
+          <div class="border-b border-slate-200 px-5 py-4">
+            <h3 class="font-bold text-slate-950" x-text="modeKehamilan==='tambah'?'Tambah Kehamilan':'Edit Kehamilan'"></h3>
+          </div>
+
+          <div class="grid gap-4 p-5 sm:grid-cols-2">
+            <label class="text-xs font-semibold text-slate-600">
+              Tanggal mulai *
+              <input type="date" class="posga-input mt-1" required x-model="formKehamilan.tanggalMulai">
+            </label>
+
+            <label x-show="modeKehamilan==='edit'" class="text-xs font-semibold text-slate-600">
+              Tanggal selesai
+              <input type="date" class="posga-input mt-1" x-model="formKehamilan.tanggalSelesai">
+              <span class="mt-1 block text-[10px] font-normal text-slate-400">Kosongkan hanya jika episode memang masih aktif.</span>
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              HPHT
+              <input type="date" class="posga-input mt-1" x-model="formKehamilan.hpht">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              HPL
+              <input type="date" class="posga-input mt-1" x-model="formKehamilan.hpl">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              BB sebelum hamil (kg)
+              <input type="number" step="0.01" class="posga-input mt-1" x-model="formKehamilan.bbSebelumHamilKg">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              Tinggi badan (cm)
+              <input type="number" step="0.01" class="posga-input mt-1" x-model="formKehamilan.tbCm">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              LiLA awal (cm)
+              <input type="number" step="0.01" class="posga-input mt-1" x-model="formKehamilan.lilaAwalCm">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600 sm:col-span-2">
+              Catatan
+              <textarea class="posga-input mt-1 min-h-20" x-model="formKehamilan.catatan"></textarea>
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-2 border-t border-slate-200 p-4">
+            <button type="button" class="posga-button-secondary" @click="modalKehamilan=false">Batal</button>
+            <button type="submit" class="posga-button-primary" :disabled="saving">
+              <span x-text="saving?'Menyimpan...':'Simpan'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- MODAL NIFAS -->
+      <div x-cloak x-show="modalNifas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" @keydown.escape.window="modalNifas=false">
+        <form class="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl bg-white shadow-2xl" @submit.prevent="simpanNifas()">
+          <div class="border-b border-slate-200 px-5 py-4">
+            <h3 class="font-bold text-slate-950" x-text="modeNifas==='tambah'?'Tambah Nifas':'Edit Nifas'"></h3>
+          </div>
+
+          <div class="grid gap-4 p-5 sm:grid-cols-2">
+            <label class="text-xs font-semibold text-slate-600">
+              Tanggal mulai *
+              <input type="date" class="posga-input mt-1" required x-model="formNifas.tanggalMulai">
+            </label>
+
+            <label x-show="modeNifas==='edit'" class="text-xs font-semibold text-slate-600">
+              Tanggal selesai
+              <input type="date" class="posga-input mt-1" x-model="formNifas.tanggalSelesai">
+              <span class="mt-1 block text-[10px] font-normal text-slate-400">Nifas aktif otomatis diselesaikan setelah 45 hari dari tanggal melahirkan.</span>
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              Hubungkan kehamilan
+              <select class="posga-input mt-1" x-model="formNifas.episodeKehamilanId">
+                <option value="">Tanpa hubungan</option>
+                <template x-for="item in kehamilanUntukNifas" :key="item.id">
+                  <option :value="String(item.id)" x-text="`${formatTanggal(item.tanggalMulai)} • ${labelStatusEpisode(item.status)}`"></option>
+                </template>
+              </select>
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              Tanggal melahirkan
+              <input type="date" class="posga-input mt-1" x-model="formNifas.tanggalMelahirkan">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              Jam bersalin
+              <input type="time" class="posga-input mt-1" x-model="formNifas.jamBersalin">
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              Cara persalinan
+              <select class="posga-input mt-1" x-model="formNifas.caraPersalinan">
+                <option value="">Belum diisi</option>
+                <option value="pervaginam">Pervaginam</option>
+                <option value="sesar">Sesar</option>
+              </select>
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              Vitamin A
+              <select class="posga-input mt-1" x-model="formNifas.vitaminA">
+                <option value="">Belum diisi</option>
+                <option value="true">Ya</option>
+                <option value="false">Tidak</option>
+              </select>
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600">
+              ASI eksklusif
+              <select class="posga-input mt-1" x-model="formNifas.asiEksklusif">
+                <option value="">Belum diisi</option>
+                <option value="true">Ya</option>
+                <option value="false">Tidak</option>
+              </select>
+            </label>
+
+            <label class="text-xs font-semibold text-slate-600 sm:col-span-2">
+              Catatan
+              <textarea class="posga-input mt-1 min-h-20" x-model="formNifas.catatan"></textarea>
+            </label>
+          </div>
+
+          <div class="flex justify-end gap-2 border-t border-slate-200 p-4">
+            <button type="button" class="posga-button-secondary" @click="modalNifas=false">Batal</button>
+            <button type="submit" class="posga-button-primary" :disabled="saving">
+              <span x-text="saving?'Menyimpan...':'Simpan'"></span>
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- DETAIL NIFAS -->
+      <div x-cloak x-show="modalDetailNifas" class="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/40 p-4" @keydown.escape.window="modalDetailNifas=false">
+        <div class="max-h-[90vh] w-full max-w-3xl overflow-y-auto rounded-2xl bg-white shadow-2xl">
+          <div class="flex items-center justify-between border-b border-slate-200 px-5 py-4">
+            <div>
+              <h3 class="font-bold text-slate-950">Detail Persalinan & Nifas</h3>
+              <p class="mt-0.5 text-xs text-slate-500" x-text="detailNifas ? formatTanggal(detailNifas.tanggalMelahirkan || detailNifas.tanggalMulai) : ''"></p>
+            </div>
+            <button type="button" class="posga-button-secondary" @click="modalDetailNifas=false">Tutup</button>
+          </div>
+
+          <div class="grid gap-5 p-5 md:grid-cols-2">
+            <section>
+              <div class="mb-3 flex items-center justify-between gap-2">
+                <h4 class="text-sm font-bold text-slate-900">Tindakan persalinan</h4>
+                <button type="button" class="text-xs font-semibold text-emerald-700" @click="tambahItemPersalinan('tindakan')">+ Tambah</button>
+              </div>
+
+              <div class="grid gap-2">
+                <template x-for="item in detailNifas?.tindakanPersalinan || []" :key="item.id">
+                  <div class="flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-3">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-800" x-text="item.label"></p>
+                      <p x-show="item.catatan" class="mt-1 text-xs text-slate-500" x-text="item.catatan"></p>
+                    </div>
+                    <button type="button" class="text-xs font-semibold text-red-600" @click="hapusItemPersalinan('tindakan', item)">Hapus</button>
+                  </div>
+                </template>
+
+                <p x-show="(detailNifas?.tindakanPersalinan?.length ?? 0)===0" class="text-xs text-slate-500">Belum ada tindakan.</p>
+              </div>
+            </section>
+
+            <section>
+              <div class="mb-3 flex items-center justify-between gap-2">
+                <h4 class="text-sm font-bold text-slate-900">Komplikasi persalinan</h4>
+                <button type="button" class="text-xs font-semibold text-emerald-700" @click="tambahItemPersalinan('komplikasi')">+ Tambah</button>
+              </div>
+
+              <div class="grid gap-2">
+                <template x-for="item in detailNifas?.komplikasiPersalinan || []" :key="item.id">
+                  <div class="flex items-start justify-between gap-3 rounded-lg border border-slate-200 p-3">
+                    <div>
+                      <p class="text-sm font-semibold text-slate-800" x-text="item.label"></p>
+                      <p x-show="item.catatan" class="mt-1 text-xs text-slate-500" x-text="item.catatan"></p>
+                    </div>
+                    <button type="button" class="text-xs font-semibold text-red-600" @click="hapusItemPersalinan('komplikasi', item)">Hapus</button>
+                  </div>
+                </template>
+
+                <p x-show="(detailNifas?.komplikasiPersalinan?.length ?? 0)===0" class="text-xs text-slate-500">Belum ada komplikasi.</p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</body>
+</html>
+

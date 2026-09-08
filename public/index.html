@@ -1,0 +1,508 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta
+      name="description"
+      content="POSGA - Sistem digital pelayanan dan pencatatan Posyandu."
+    />
+
+    <title>Dashboard | POSGA</title>
+
+    <link
+      rel="stylesheet"
+      href="/css/output.css"
+    />
+
+    <script
+      src="/js/utils.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/api.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/auth.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/layout.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/dashboard.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/alpine.js"
+      defer
+    ></script>
+  </head>
+
+  <body
+    data-page="dashboard"
+    data-auth="private"
+    x-data="posgaLayout"
+    x-init="init()"
+  >
+<aside class="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div class="flex h-20 shrink-0 items-center gap-3 border-b border-slate-100 px-6">
+      <div class="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-sm" aria-hidden="true">P</div>
+      <div class="min-w-0">
+        <p class="text-lg font-bold leading-5 text-slate-950">POSGA</p>
+        <p class="mt-1 truncate text-xs text-slate-500">Sistem Pelayanan Posyandu</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Navigasi utama">
+      <template x-for="item in navigasi" :key="item.id">
+        <a
+          :href="item.href"
+          class="posga-nav-item"
+          :class="halamanAktif===item.id?'posga-nav-item-active':''"
+          :aria-current="halamanAktif===item.id?'page':null"
+        >
+          <span class="size-5 shrink-0" x-html="iconSvg(item.icon)"></span>
+          <span class="truncate" x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+
+    <div class="shrink-0 border-t border-slate-100 px-4 py-4">
+      <div class="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+        <div class="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700" x-text="inisialUser"></div>
+        <div class="min-w-0">
+          <p class="truncate text-xs font-semibold text-slate-800" x-text="user.nama || user.username || 'Pengguna'"></p>
+          <p class="truncate text-[10px] text-slate-500" x-text="user.role==='admin'?'Administrator':'Petugas'"></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+    <div class="min-h-screen lg:pl-64">
+      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div class="flex h-20 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div class="flex min-w-0 items-center gap-3">
+
+            <div class="min-w-0">
+              <p class="truncate text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
+                POSGA
+              </p>
+
+              <h1 class="truncate text-lg font-bold text-slate-950 sm:text-xl">
+                Dashboard
+              </h1>
+            </div>
+          </div>
+
+          <div
+            class="flex items-center gap-3"
+            x-data="{ akunTerbuka: false }"
+          >
+            <div class="relative">
+              <div class="relative">
+  <button
+    type="button"
+    class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+    x-text="inisialUser"
+    :title="user?.nama || user?.username || 'Akun POSGA'"
+    :aria-label="`Akun ${user?.nama || user?.username || 'POSGA'}`"
+    @click="akunTerbuka = !akunTerbuka"
+  ></button>
+
+  <div
+    x-cloak
+    x-show="akunTerbuka"
+    @click.outside="akunTerbuka = false"
+    x-transition
+    class="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+  >
+    <div class="border-b border-slate-100 px-3 py-2">
+      <p
+        class="truncate text-sm font-semibold text-slate-900"
+        x-text="user?.nama || user?.username || 'Pengguna'"
+      ></p>
+
+      <p
+        class="mt-0.5 truncate text-xs text-slate-500"
+        x-text="user?.role === 'admin' ? 'Administrator' : 'Petugas'"
+      ></p>
+    </div>
+
+    <button
+      type="button"
+      class="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+      @click="logout()"
+    >
+      Keluar
+    </button>
+  </div>
+</div>
+
+              <div
+                x-cloak
+                x-show="akunTerbuka"
+                x-transition
+                class="absolute right-0 mt-2 w-56 rounded-2xl border border-slate-200 bg-white p-2 shadow-lg"
+              >
+                <div class="border-b border-slate-100 px-3 py-2 sm:hidden">
+                  <p
+                    class="truncate text-sm font-semibold text-slate-900"
+                    x-text="user.nama || user.username"
+                  ></p>
+
+                  <p
+                    class="mt-0.5 text-xs capitalize text-slate-500"
+                    x-text="user.role"
+                  ></p>
+                </div>
+
+                <button
+                  type="button"
+                  class="mt-1 flex w-full items-center rounded-xl px-3 py-2.5 text-left text-sm font-semibold text-red-600 transition hover:bg-red-50"
+                  @click="logout()"
+                >
+                  Keluar
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </header>
+
+      <main
+        x-data="dashboardPage"
+        x-init="init()"
+        class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+      >
+        <div class="mx-auto max-w-7xl">
+          <div class="mb-7 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <nav class="mb-2 flex items-center gap-2 text-xs font-medium text-slate-400">
+                <span>POSGA</span>
+                <span>/</span>
+                <span class="text-slate-600">Dashboard</span>
+              </nav>
+
+              <h2 class="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                Ringkasan pelayanan
+              </h2>
+
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                Ringkasan lokasi, Posyandu, dan sesi pada bulan berjalan.
+              </p>
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <button
+                type="button"
+                class="posga-button-secondary"
+                @click="muatDashboard()"
+                :disabled="loading"
+              >
+                Muat ulang
+              </button>
+
+              <a
+                href="/sesi/"
+                class="posga-button-primary"
+              >
+                Sesi POSGA
+              </a>
+            </div>
+          </div>
+
+          <div
+            x-cloak
+            x-show="error"
+            class="posga-alert-error mb-6"
+          >
+            <div class="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+              <p x-text="error"></p>
+
+              <button
+                type="button"
+                class="font-semibold underline"
+                @click="muatDashboard()"
+              >
+                Coba lagi
+              </button>
+            </div>
+          </div>
+
+          <section
+            class="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"
+            aria-label="Ringkasan statistik"
+          >
+            <article class="posga-card p-5">
+              <p class="posga-muted">
+                Lokasi Aktif
+              </p>
+
+              <p
+                class="mt-2 text-3xl font-bold tracking-tight text-slate-950"
+                x-text="loading ? '…' : statistik.lokasiAktif"
+              ></p>
+
+              <p class="mt-4 text-xs text-slate-400">
+                Lokasi pelayanan terdaftar
+              </p>
+            </article>
+
+            <article class="posga-card p-5">
+              <p class="posga-muted">
+                Posyandu Aktif
+              </p>
+
+              <p
+                class="mt-2 text-3xl font-bold tracking-tight text-slate-950"
+                x-text="loading ? '…' : statistik.posyanduAktif"
+              ></p>
+
+              <p class="mt-4 text-xs text-slate-400">
+                Unit pelayanan aktif
+              </p>
+            </article>
+
+            <article class="posga-card p-5">
+              <p class="posga-muted">
+                Sesi Bulan Ini
+              </p>
+
+              <p
+                class="mt-2 text-3xl font-bold tracking-tight text-slate-950"
+                x-text="loading ? '…' : statistik.sesiBulanIni"
+              ></p>
+
+              <p class="mt-4 text-xs text-slate-400">
+                Seluruh status sesi
+              </p>
+            </article>
+
+            <article class="posga-card p-5">
+              <p class="posga-muted">
+                Sesi Aktif
+              </p>
+
+              <p
+                class="mt-2 text-3xl font-bold tracking-tight text-slate-950"
+                x-text="loading ? '…' : statistik.sesiAktif"
+              ></p>
+
+              <p class="mt-4 text-xs text-slate-400">
+                Sesi bulan ini yang masih aktif
+              </p>
+            </article>
+          </section>
+
+          <div class="mt-6 grid gap-6 xl:grid-cols-[minmax(0,1.55fr)_minmax(300px,0.7fr)]">
+            <section class="posga-card overflow-hidden">
+              <div class="flex items-center justify-between gap-4 border-b border-slate-100 px-5 py-4 sm:px-6">
+                <div>
+                  <h3 class="posga-section-title">
+                    Sesi POSGA terbaru
+                  </h3>
+
+                  <p class="mt-1 text-xs text-slate-500">
+                    Maksimal lima sesi terbaru pada bulan berjalan.
+                  </p>
+                </div>
+
+                <a
+                  href="/sesi/"
+                  class="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                >
+                  Lihat semua
+                </a>
+              </div>
+
+              <div
+                x-show="loading"
+                class="space-y-3 p-5 sm:p-6"
+              >
+                <template x-for="i in 4">
+                  <div class="animate-pulse rounded-xl border border-slate-100 p-4">
+                    <div class="h-4 w-1/3 rounded bg-slate-200"></div>
+                    <div class="mt-3 h-3 w-1/2 rounded bg-slate-100"></div>
+                  </div>
+                </template>
+              </div>
+
+              <div
+                x-cloak
+                x-show="!loading && sesiTerbaru.length === 0"
+                class="p-6"
+              >
+                <div class="flex min-h-48 flex-col items-center justify-center rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-6 text-center">
+                  <h4 class="text-sm font-semibold text-slate-800">
+                    Belum ada sesi bulan ini
+                  </h4>
+
+                  <p class="mt-1 max-w-sm text-sm leading-6 text-slate-500">
+                    Buat sesi POSGA baru untuk mulai mencatat pelayanan.
+                  </p>
+                </div>
+              </div>
+
+              <div
+                x-cloak
+                x-show="!loading && sesiTerbaru.length > 0"
+                class="divide-y divide-slate-100"
+              >
+                <template
+                  x-for="item in sesiTerbaru"
+                  :key="item.id"
+                >
+                  <article class="px-5 py-4 sm:px-6">
+                    <div class="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p
+                            class="truncate text-sm font-semibold text-slate-900"
+                            x-text="item.namaPosyandu || `Posyandu #${item.posyanduId}`"
+                          ></p>
+
+                          <span
+                            class="posga-badge"
+                            :class="kelasStatus(item.status)"
+                            x-text="labelStatus(item.status)"
+                          ></span>
+                        </div>
+
+                        <p
+                          class="mt-1 text-xs text-slate-500"
+                          x-text="formatTanggal(item.tanggalPosga)"
+                        ></p>
+
+                        <template x-if="progres(item) !== null">
+                          <div class="mt-3 max-w-md">
+                            <div class="flex items-center justify-between gap-3 text-xs text-slate-500">
+                              <span>
+                                Progres pemeriksaan
+                              </span>
+
+                              <span
+                                class="font-semibold text-slate-700"
+                                x-text="`${progres(item)}% · ${totalRoster(item)} peserta`"
+                              ></span>
+                            </div>
+
+                            <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-100">
+                              <div
+                                class="h-full rounded-full bg-emerald-500 transition-all"
+                                :style="`width: ${Math.min(100, Math.max(0, progres(item)))}%`"
+                              ></div>
+                            </div>
+                          </div>
+                        </template>
+                      </div>
+
+                      <a
+                        :href="`/sesi/?id=${item.id}`"
+                        class="shrink-0 text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                      >
+                        Buka sesi
+                      </a>
+                    </div>
+                  </article>
+                </template>
+              </div>
+            </section>
+
+            <section class="posga-card p-5 sm:p-6">
+              <h3 class="posga-section-title">
+                Akses cepat
+              </h3>
+
+              <p class="mt-1 text-xs text-slate-500">
+                Menu yang paling sering digunakan.
+              </p>
+
+              <div class="mt-5 space-y-3">
+                <a
+                  href="/peserta/"
+                  class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 transition hover:border-emerald-200 hover:bg-emerald-50/60"
+                >
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">
+                      Data Peserta
+                    </p>
+
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      Cari dan kelola peserta
+                    </p>
+                  </div>
+
+                  <span class="text-slate-400">
+                    →
+                  </span>
+                </a>
+
+                <a
+                  href="/sesi/"
+                  class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 transition hover:border-emerald-200 hover:bg-emerald-50/60"
+                >
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">
+                      Sesi POSGA
+                    </p>
+
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      Pelayanan per tanggal
+                    </p>
+                  </div>
+
+                  <span class="text-slate-400">
+                    →
+                  </span>
+                </a>
+
+                <a
+                  href="/rekap/"
+                  class="flex items-center justify-between rounded-xl border border-slate-200 px-4 py-3 transition hover:border-emerald-200 hover:bg-emerald-50/60"
+                >
+                  <div>
+                    <p class="text-sm font-semibold text-slate-800">
+                      Rekap Pelayanan
+                    </p>
+
+                    <p class="mt-0.5 text-xs text-slate-500">
+                      Ringkasan hasil sesi
+                    </p>
+                  </div>
+
+                  <span class="text-slate-400">
+                    →
+                  </span>
+                </a>
+              </div>
+
+              <div class="mt-6 rounded-xl bg-emerald-50 p-4">
+                <p class="text-sm font-semibold text-emerald-900">
+                  Data real
+                </p>
+
+                <p class="mt-1 text-xs leading-5 text-emerald-700">
+                  Statistik dashboard sekarang berasal langsung dari endpoint lokasi, Posyandu, sesi, dan rekap.
+                </p>
+              </div>
+            </section>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
+

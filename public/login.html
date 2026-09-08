@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <meta
+      name="description"
+      content="Login POSGA"
+    />
+
+    <title>Login | POSGA</title>
+
+    <link
+      rel="stylesheet"
+      href="/css/output.css"
+    />
+
+    <script
+      src="/js/api.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/auth.js"
+      defer
+    ></script>
+
+    <script
+      src="/js/alpine.js"
+      defer
+    ></script>
+  </head>
+
+  <body class="bg-slate-100">
+    <main
+      x-data="loginPage"
+      x-init="init()"
+      class="grid min-h-screen lg:grid-cols-[minmax(0,1fr)_minmax(420px,560px)]"
+    >
+      <section class="relative hidden overflow-hidden bg-emerald-700 p-12 text-white lg:flex lg:flex-col lg:justify-between">
+        <div class="absolute -right-28 -top-28 size-96 rounded-full bg-white/10"></div>
+
+        <div class="absolute -bottom-40 -left-24 size-[32rem] rounded-full bg-white/5"></div>
+
+        <div class="relative">
+          <div class="flex items-center gap-3">
+            <div class="grid size-12 place-items-center rounded-2xl bg-white/15">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                class="size-7"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 21s-7-4.35-7-10A4 4 0 0 1 12 8a4 4 0 0 1 7 3c0 5.65-7 10-7 10Z"
+                />
+
+                <path
+                  stroke-linecap="round"
+                  d="M12 8V3M9.5 5.5h5"
+                />
+              </svg>
+            </div>
+
+            <div>
+              <p class="text-xl font-bold">
+                POSGA
+              </p>
+
+              <p class="text-sm text-emerald-100">
+                Sistem Pelayanan Posyandu
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div class="relative max-w-xl">
+          <p class="text-sm font-bold uppercase tracking-[0.18em] text-emerald-200">
+            Digitalisasi pelayanan
+          </p>
+
+          <h1 class="mt-4 text-4xl font-bold leading-tight xl:text-5xl">
+            Data pelayanan Posyandu dalam satu sistem.
+          </h1>
+
+          <p class="mt-5 max-w-lg text-base leading-7 text-emerald-100">
+            Kelola peserta, sesi POSGA, pemeriksaan, skrining, konseling, riwayat, dan rekap secara terstruktur.
+          </p>
+        </div>
+
+        <p class="relative text-xs text-emerald-200">
+          POSGA · Sistem internal pelayanan kesehatan
+        </p>
+      </section>
+
+      <section class="flex min-h-screen items-center justify-center px-5 py-10 sm:px-8 lg:px-12">
+        <div class="w-full max-w-md">
+          <div class="mb-8 flex items-center gap-3 lg:hidden">
+            <div class="grid size-11 place-items-center rounded-2xl bg-emerald-600 text-white">
+              <svg
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="1.8"
+                class="size-6"
+              >
+                <path
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                  d="M12 21s-7-4.35-7-10A4 4 0 0 1 12 8a4 4 0 0 1 7 3c0 5.65-7 10-7 10Z"
+                />
+
+                <path
+                  stroke-linecap="round"
+                  d="M12 8V3M9.5 5.5h5"
+                />
+              </svg>
+            </div>
+
+            <div>
+              <p class="text-lg font-bold text-slate-950">
+                POSGA
+              </p>
+
+              <p class="text-xs text-slate-500">
+                Sistem Pelayanan Posyandu
+              </p>
+            </div>
+          </div>
+
+          <template x-if="checking">
+            <div class="posga-card p-8 text-center">
+              <div class="mx-auto size-8 animate-spin rounded-full border-2 border-slate-200 border-t-emerald-600"></div>
+
+              <p class="mt-4 text-sm font-medium text-slate-600">
+                Memeriksa sesi...
+              </p>
+            </div>
+          </template>
+
+          <form
+            x-cloak
+            x-show="!checking"
+            @submit.prevent="submit()"
+            class="posga-card p-6 sm:p-8"
+          >
+            <div>
+              <p class="text-sm font-semibold text-emerald-600">
+                Selamat datang
+              </p>
+
+              <h2 class="mt-1 text-2xl font-bold tracking-tight text-slate-950">
+                Masuk ke POSGA
+              </h2>
+
+              <p class="mt-2 text-sm leading-6 text-slate-500">
+                Gunakan akun yang telah terdaftar untuk mengakses sistem.
+              </p>
+            </div>
+
+            <div
+              x-cloak
+              x-show="error"
+              x-text="error"
+              class="posga-alert-error mt-5"
+              role="alert"
+            ></div>
+
+            <div class="mt-6 space-y-5">
+              <div>
+                <label
+                  for="username"
+                  class="posga-label"
+                >
+                  Username
+                </label>
+
+                <input
+                  id="username"
+                  name="username"
+                  type="text"
+                  autocomplete="username"
+                  class="posga-input"
+                  placeholder="Masukkan username"
+                  x-model="username"
+                  :disabled="loading"
+                  autofocus
+                />
+              </div>
+
+              <div>
+                <label
+                  for="password"
+                  class="posga-label"
+                >
+                  Password
+                </label>
+
+                <div class="relative">
+                  <input
+                    id="password"
+                    name="password"
+                    :type="tampilkanPassword ? 'text' : 'password'"
+                    autocomplete="current-password"
+                    class="posga-input pr-20"
+                    placeholder="Masukkan password"
+                    x-model="password"
+                    :disabled="loading"
+                  />
+
+                  <button
+                    type="button"
+                    class="absolute inset-y-0 right-0 px-3 text-xs font-semibold text-slate-500 hover:text-slate-800"
+                    @click="tampilkanPassword = !tampilkanPassword"
+                    x-text="tampilkanPassword ? 'Sembunyikan' : 'Lihat'"
+                    :disabled="loading"
+                  ></button>
+                </div>
+              </div>
+            </div>
+
+            <button
+              type="submit"
+              class="posga-button-primary mt-6 w-full"
+              :disabled="loading"
+            >
+              <span
+                x-cloak
+                x-show="loading"
+                class="size-4 animate-spin rounded-full border-2 border-white/40 border-t-white"
+              ></span>
+
+              <span
+                x-text="loading ? 'Memproses...' : 'Masuk'"
+              ></span>
+            </button>
+
+            <p class="mt-6 text-center text-xs leading-5 text-slate-400">
+              Sesi login akan berakhir sesuai masa berlaku yang ditetapkan server.
+            </p>
+          </form>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>

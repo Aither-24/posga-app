@@ -1,0 +1,624 @@
+<!doctype html>
+<html lang="id">
+  <head>
+    <meta charset="UTF-8" />
+
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0"
+    />
+
+    <title>Lokasi & Posyandu | POSGA</title>
+
+    <link
+      rel="stylesheet"
+      href="/css/output.css"
+    />
+
+    <script src="/js/utils.js" defer></script>
+    <script src="/js/api.js" defer></script>
+    <script src="/js/auth.js" defer></script>
+    <script src="/js/layout.js" defer></script>
+    <script src="/js/posyandu.js" defer></script>
+    <script src="/js/alpine.js" defer></script>
+  </head>
+
+  <body
+    data-page="posyandu"
+    data-auth="private"
+    x-data="posgaLayout"
+    x-init="init()"
+  >
+<aside class="fixed inset-y-0 left-0 z-50 hidden w-64 flex-col border-r border-slate-200 bg-white lg:flex">
+    <div class="flex h-20 shrink-0 items-center gap-3 border-b border-slate-100 px-6">
+      <div class="grid size-11 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-base font-bold text-white shadow-sm" aria-hidden="true">P</div>
+      <div class="min-w-0">
+        <p class="text-lg font-bold leading-5 text-slate-950">POSGA</p>
+        <p class="mt-1 truncate text-xs text-slate-500">Sistem Pelayanan Posyandu</p>
+      </div>
+    </div>
+
+    <nav class="flex-1 overflow-y-auto px-4 py-5" aria-label="Navigasi utama">
+      <template x-for="item in navigasi" :key="item.id">
+        <a
+          :href="item.href"
+          class="posga-nav-item"
+          :class="halamanAktif===item.id?'posga-nav-item-active':''"
+          :aria-current="halamanAktif===item.id?'page':null"
+        >
+          <span class="size-5 shrink-0" x-html="iconSvg(item.icon)"></span>
+          <span class="truncate" x-text="item.label"></span>
+        </a>
+      </template>
+    </nav>
+
+    <div class="shrink-0 border-t border-slate-100 px-4 py-4">
+      <div class="flex items-center gap-3 rounded-xl bg-slate-50 px-3 py-2.5">
+        <div class="grid size-9 shrink-0 place-items-center rounded-full bg-emerald-100 text-xs font-bold text-emerald-700" x-text="inisialUser"></div>
+        <div class="min-w-0">
+          <p class="truncate text-xs font-semibold text-slate-800" x-text="user.nama || user.username || 'Pengguna'"></p>
+          <p class="truncate text-[10px] text-slate-500" x-text="user.role==='admin'?'Administrator':'Petugas'"></p>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+    <div class="min-h-screen lg:pl-64">
+      <header class="sticky top-0 z-30 border-b border-slate-200 bg-white/95 backdrop-blur">
+        <div class="flex h-20 items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+          <div class="min-w-0">
+            <p class="truncate text-xs font-semibold uppercase tracking-[0.12em] text-emerald-600">
+              Master
+            </p>
+            <h1 class="truncate text-lg font-bold text-slate-950 sm:text-xl">
+              Lokasi &amp; Posyandu
+            </h1>
+          </div>
+
+          <div class="relative" x-data="{ akunTerbuka: false }">
+            <button
+              type="button"
+              class="grid size-10 shrink-0 place-items-center rounded-full bg-emerald-100 text-sm font-bold text-emerald-700"
+              x-text="inisialUser"
+              :title="user?.nama || user?.username || 'Akun POSGA'"
+              :aria-label="`Akun ${user?.nama || user?.username || 'POSGA'}`"
+              @click="akunTerbuka = !akunTerbuka"
+            ></button>
+
+            <div
+              x-cloak
+              x-show="akunTerbuka"
+              @click.outside="akunTerbuka = false"
+              x-transition
+              class="absolute right-0 z-50 mt-2 w-56 rounded-xl border border-slate-200 bg-white p-2 shadow-lg"
+            >
+              <div class="border-b border-slate-100 px-3 py-2">
+                <p class="truncate text-sm font-semibold text-slate-900" x-text="user?.nama || user?.username || 'Pengguna'"></p>
+                <p class="mt-0.5 truncate text-xs text-slate-500" x-text="user?.role === 'admin' ? 'Administrator' : 'Petugas'"></p>
+              </div>
+              <button
+                type="button"
+                class="mt-1 w-full rounded-lg px-3 py-2 text-left text-sm font-semibold text-red-600 hover:bg-red-50"
+                @click="logout()"
+              >
+                Keluar
+              </button>
+            </div>
+          </div>
+        </div>
+      </header>
+      <main
+        x-data="posyanduPage"
+        x-init="init()"
+        class="px-4 py-6 sm:px-6 lg:px-8 lg:py-8"
+      >
+        <div class="mx-auto max-w-7xl">
+          <div class="mb-6 flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+            <div>
+              <nav class="mb-2 flex items-center gap-2 text-xs font-medium text-slate-400">
+                <a href="/">POSGA</a>
+                <span>/</span>
+                <span class="text-slate-600">Lokasi & Posyandu</span>
+              </nav>
+
+              <h2 class="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">
+                Master lokasi pelayanan
+              </h2>
+
+              <p class="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
+                Kelola lokasi dan Posyandu yang berada di bawah masing-masing lokasi.
+              </p>
+            </div>
+
+            <button
+              x-cloak
+              x-show="isAdmin"
+              type="button"
+              class="posga-button-primary"
+              @click="bukaTambahLokasi()"
+            >
+              + Tambah Lokasi
+            </button>
+          </div>
+
+          <div
+            x-cloak
+            x-show="error"
+            class="posga-alert-error mb-5"
+            x-text="error"
+          ></div>
+
+          <div
+            x-cloak
+            x-show="success"
+            class="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700"
+            x-text="success"
+          ></div>
+
+          <div class="grid gap-6 xl:grid-cols-[380px_minmax(0,1fr)]">
+            <!-- LOKASI -->
+
+            <section class="posga-card overflow-hidden">
+              <div class="border-b border-slate-100 px-5 py-4">
+                <h3 class="posga-section-title">
+                  Lokasi
+                </h3>
+
+                <p class="mt-1 text-xs text-slate-500">
+                  Pilih lokasi untuk melihat Posyandu.
+                </p>
+              </div>
+
+              <div
+                x-show="loading"
+                class="space-y-3 p-5"
+              >
+                <template x-for="i in 4">
+                  <div class="h-20 animate-pulse rounded-xl bg-slate-100"></div>
+                </template>
+              </div>
+
+              <div
+                x-cloak
+                x-show="!loading && lokasi.length === 0"
+                class="p-8 text-center"
+              >
+                <p class="text-sm font-semibold text-slate-800">
+                  Belum ada lokasi
+                </p>
+
+                <p class="mt-1 text-sm text-slate-500">
+                  Tambahkan lokasi pelayanan pertama.
+                </p>
+              </div>
+
+              <div
+                x-cloak
+                x-show="!loading && lokasi.length > 0"
+                class="divide-y divide-slate-100"
+              >
+                <template
+                  x-for="item in lokasi"
+                  :key="item.id"
+                >
+                  <article
+                    class="cursor-pointer p-4 transition hover:bg-slate-50"
+                    :class="lokasiTerpilih?.id === item.id ? 'bg-emerald-50/60' : ''"
+                    @click="pilihLokasi(item)"
+                  >
+                    <div class="flex items-start justify-between gap-3">
+                      <div class="min-w-0">
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p
+                            class="font-semibold text-slate-900"
+                            x-text="item.nama"
+                          ></p>
+
+                          <span
+                            class="posga-badge"
+                            :class="item.aktif ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                            x-text="item.aktif ? 'Aktif' : 'Nonaktif'"
+                          ></span>
+                        </div>
+
+                        <p
+                          class="mt-1 line-clamp-2 text-xs leading-5 text-slate-500"
+                          x-text="item.alamat || 'Alamat belum diisi'"
+                        ></p>
+                      </div>
+
+                      <span class="text-slate-400">
+                        →
+                      </span>
+                    </div>
+
+                    <div
+                      x-cloak
+                      x-show="isAdmin"
+                      class="mt-3 flex gap-3"
+                      @click.stop
+                    >
+                      <button
+                        type="button"
+                        class="text-xs font-semibold text-emerald-600 hover:text-emerald-700"
+                        @click="bukaEditLokasi(item)"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        x-show="item.aktif"
+                        type="button"
+                        class="text-xs font-semibold text-red-600 hover:text-red-700"
+                        @click="konfirmasiLokasi(item)"
+                      >
+                        Nonaktifkan
+                      </button>
+                    </div>
+                  </article>
+                </template>
+              </div>
+            </section>
+
+            <!-- POSYANDU -->
+
+            <section class="posga-card overflow-hidden">
+              <div class="flex flex-col gap-3 border-b border-slate-100 px-5 py-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <h3 class="posga-section-title">
+                    Posyandu
+                  </h3>
+
+                  <p
+                    class="mt-1 text-xs text-slate-500"
+                    x-text="lokasiTerpilih ? `Lokasi: ${lokasiTerpilih.nama}` : 'Pilih lokasi terlebih dahulu'"
+                  ></p>
+                </div>
+
+                <button
+                  x-cloak
+                  x-show="isAdmin && lokasiTerpilih"
+                  type="button"
+                  class="posga-button-primary"
+                  @click="bukaTambahPosyandu()"
+                >
+                  + Tambah Posyandu
+                </button>
+              </div>
+
+              <div
+                x-cloak
+                x-show="!lokasiTerpilih"
+                class="p-10 text-center"
+              >
+                <p class="text-sm font-semibold text-slate-800">
+                  Belum memilih lokasi
+                </p>
+
+                <p class="mt-1 text-sm text-slate-500">
+                  Klik salah satu lokasi di sebelah kiri.
+                </p>
+              </div>
+
+              <div
+                x-show="lokasiTerpilih && loadingPosyandu"
+                class="space-y-3 p-5"
+              >
+                <template x-for="i in 4">
+                  <div class="h-20 animate-pulse rounded-xl bg-slate-100"></div>
+                </template>
+              </div>
+
+              <div
+                x-cloak
+                x-show="lokasiTerpilih && !loadingPosyandu && posyandu.length === 0"
+                class="p-10 text-center"
+              >
+                <p class="text-sm font-semibold text-slate-800">
+                  Belum ada Posyandu
+                </p>
+
+                <p class="mt-1 text-sm text-slate-500">
+                  Lokasi ini belum memiliki Posyandu.
+                </p>
+              </div>
+
+              <div
+                x-cloak
+                x-show="lokasiTerpilih && !loadingPosyandu && posyandu.length > 0"
+                class="divide-y divide-slate-100"
+              >
+                <template
+                  x-for="item in posyandu"
+                  :key="item.id"
+                >
+                  <article class="px-5 py-4">
+                    <div class="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                      <div>
+                        <div class="flex flex-wrap items-center gap-2">
+                          <p
+                            class="font-semibold text-slate-900"
+                            x-text="item.nama"
+                          ></p>
+
+                          <span
+                            class="posga-badge"
+                            :class="item.aktif ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'"
+                            x-text="item.aktif ? 'Aktif' : 'Nonaktif'"
+                          ></span>
+                        </div>
+
+                        <p
+                          class="mt-1 text-sm leading-6 text-slate-500"
+                          x-text="item.alamat || 'Alamat belum diisi'"
+                        ></p>
+                      </div>
+
+                      <div
+                        x-cloak
+                        x-show="isAdmin"
+                        class="flex shrink-0 gap-3"
+                      >
+                        <button
+                          type="button"
+                          class="text-sm font-semibold text-emerald-600 hover:text-emerald-700"
+                          @click="bukaEditPosyandu(item)"
+                        >
+                          Edit
+                        </button>
+
+                        <button
+                          x-show="item.aktif"
+                          type="button"
+                          class="text-sm font-semibold text-amber-600 hover:text-amber-700"
+                          @click="konfirmasiPosyandu(item)"
+                        >
+                          Nonaktifkan
+                        </button>
+
+                        <button
+                          type="button"
+                          class="text-sm font-semibold text-red-600 hover:text-red-700"
+                          @click="konfirmasiHapusPosyandu(item)"
+                        >
+                          Hapus
+                        </button>
+                      </div>
+                    </div>
+                  </article>
+                </template>
+              </div>
+            </section>
+          </div>
+        </div>
+
+        <!-- MODAL LOKASI -->
+
+        <div
+          x-cloak
+          x-show="modalLokasi"
+          class="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/50 p-4"
+        >
+          <div class="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <h3
+                class="text-lg font-bold text-slate-950"
+                x-text="modeForm === 'tambah' ? 'Tambah lokasi' : 'Edit lokasi'"
+              ></h3>
+
+              <button
+                type="button"
+                class="text-2xl text-slate-400"
+                @click="modalLokasi = false"
+              >
+                Ã—
+              </button>
+            </div>
+
+            <form
+              class="p-5"
+              @submit.prevent="simpanLokasi()"
+            >
+              <div>
+                <label class="posga-label">
+                  Nama lokasi *
+                </label>
+
+                <input
+                  type="text"
+                  class="posga-input"
+                  x-model="formLokasi.nama"
+                />
+              </div>
+
+              <div class="mt-4">
+                <label class="posga-label">
+                  Alamat
+                </label>
+
+                <textarea
+                  class="posga-input min-h-24"
+                  x-model="formLokasi.alamat"
+                ></textarea>
+              </div>
+
+              <label class="mt-4 flex items-center gap-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  class="size-4 rounded"
+                  x-model="formLokasi.aktif"
+                />
+
+                Lokasi aktif
+              </label>
+
+              <div class="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  class="posga-button-secondary"
+                  @click="modalLokasi = false"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  class="posga-button-primary"
+                  :disabled="saving"
+                  x-text="saving ? 'Menyimpan...' : 'Simpan'"
+                ></button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- MODAL POSYANDU -->
+
+        <div
+          x-cloak
+          x-show="modalPosyandu"
+          class="fixed inset-0 z-[70] grid place-items-center overflow-y-auto bg-slate-950/50 p-4"
+        >
+          <div class="w-full max-w-lg rounded-2xl bg-white shadow-xl">
+            <div class="flex items-center justify-between border-b border-slate-100 px-5 py-4">
+              <div>
+                <h3
+                  class="text-lg font-bold text-slate-950"
+                  x-text="modeForm === 'tambah' ? 'Tambah Posyandu' : 'Edit Posyandu'"
+                ></h3>
+
+                <p
+                  class="mt-1 text-xs text-slate-500"
+                  x-text="lokasiTerpilih?.nama"
+                ></p>
+              </div>
+
+              <button
+                type="button"
+                class="text-2xl text-slate-400"
+                @click="modalPosyandu = false"
+              >
+                Ã—
+              </button>
+            </div>
+
+            <form
+              class="p-5"
+              @submit.prevent="simpanPosyandu()"
+            >
+              <div>
+                <label class="posga-label">
+                  Nama Posyandu *
+                </label>
+
+                <input
+                  type="text"
+                  class="posga-input"
+                  x-model="formPosyandu.nama"
+                />
+              </div>
+
+              <div class="mt-4">
+                <label class="posga-label">
+                  Alamat
+                </label>
+
+                <textarea
+                  class="posga-input min-h-24"
+                  x-model="formPosyandu.alamat"
+                ></textarea>
+              </div>
+
+              <label class="mt-4 flex items-center gap-3 text-sm text-slate-700">
+                <input
+                  type="checkbox"
+                  class="size-4 rounded"
+                  x-model="formPosyandu.aktif"
+                />
+
+                Posyandu aktif
+              </label>
+
+              <div class="mt-6 flex justify-end gap-2">
+                <button
+                  type="button"
+                  class="posga-button-secondary"
+                  @click="modalPosyandu = false"
+                >
+                  Batal
+                </button>
+
+                <button
+                  type="submit"
+                  class="posga-button-primary"
+                  :disabled="saving"
+                  x-text="saving ? 'Menyimpan...' : 'Simpan'"
+                ></button>
+              </div>
+            </form>
+          </div>
+        </div>
+
+        <!-- MODAL KONFIRMASI -->
+
+        <div
+          x-cloak
+          x-show="modalKonfirmasi"
+          class="fixed inset-0 z-[80] grid place-items-center bg-slate-950/50 p-4"
+        >
+          <div class="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h3
+              class="text-lg font-bold text-slate-950"
+              x-text="jenisKonfirmasi === 'hapus_posyandu' ? 'Hapus Posyandu permanen?' : 'Nonaktifkan data?'"
+            ></h3>
+
+            <p
+              class="mt-2 text-sm leading-6 text-slate-500"
+              x-show="jenisKonfirmasi !== 'hapus_posyandu'"
+            >
+              <span
+                x-text="jenisKonfirmasi === 'lokasi' ? 'Lokasi' : 'Posyandu'"
+              ></span>
+              <strong
+                class="text-slate-800"
+                x-text="itemDipilih?.nama"
+              ></strong>
+              akan dinonaktifkan. Riwayat yang sudah ada tetap disimpan.
+            </p>
+
+            <p
+              class="mt-2 text-sm leading-6 text-slate-500"
+              x-show="jenisKonfirmasi === 'hapus_posyandu'"
+            >
+              Posyandu
+              <strong
+                class="text-slate-800"
+                x-text="itemDipilih?.nama"
+              ></strong>
+              akan dihapus permanen. Tindakan ini hanya berhasil bila Posyandu belum pernah digunakan oleh peserta atau sesi POSGA.
+            </p>
+
+            <div class="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                class="posga-button-secondary"
+                @click="modalKonfirmasi = false"
+              >
+                Batal
+              </button>
+
+              <button
+                type="button"
+                class="inline-flex items-center justify-center rounded-xl bg-red-600 px-4 py-2.5 text-sm font-semibold text-white hover:bg-red-700 disabled:bg-red-300"
+                :disabled="deleting"
+                @click="prosesKonfirmasi()"
+                x-text="deleting ? 'Memproses...' : (jenisKonfirmasi === 'hapus_posyandu' ? 'Hapus permanen' : 'Nonaktifkan')"
+              ></button>
+            </div>
+          </div>
+        </div>
+      </main>
+    </div>
+  </body>
+</html>
+
