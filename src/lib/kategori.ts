@@ -46,6 +46,69 @@ function parseTanggal(tanggal: string): Date {
   return date;
 }
 
+function jumlahHariDalamBulan(
+  tahun: number,
+  bulan: number,
+): number {
+  return new Date(tahun, bulan + 1, 0).getDate();
+}
+
+function tambahBulanTerbatas(
+  tanggal: Date,
+  jumlahBulan: number,
+): Date {
+  const tahunAwal = tanggal.getFullYear();
+  const bulanAwal = tanggal.getMonth();
+  const hariAwal = tanggal.getDate();
+
+  const indeksBulan = bulanAwal + jumlahBulan;
+
+  const tahunTarget =
+    tahunAwal + Math.floor(indeksBulan / 12);
+
+  const bulanTarget =
+    ((indeksBulan % 12) + 12) % 12;
+
+  const hariTarget = Math.min(
+    hariAwal,
+    jumlahHariDalamBulan(
+      tahunTarget,
+      bulanTarget,
+    ),
+  );
+
+  return new Date(
+    tahunTarget,
+    bulanTarget,
+    hariTarget,
+  );
+}
+
+function selisihHariKalender(
+  tanggalAwal: Date,
+  tanggalAkhir: Date,
+): number {
+  const awalUtc = Date.UTC(
+    tanggalAwal.getFullYear(),
+    tanggalAwal.getMonth(),
+    tanggalAwal.getDate(),
+  );
+
+  const akhirUtc = Date.UTC(
+    tanggalAkhir.getFullYear(),
+    tanggalAkhir.getMonth(),
+    tanggalAkhir.getDate(),
+  );
+
+  const milidetikPerHari =
+    24 * 60 * 60 * 1000;
+
+  return Math.floor(
+    (akhirUtc - awalUtc) /
+      milidetikPerHari,
+  );
+}
+
 export function hitungUmurLengkap(
   tanggalLahir: Date,
   tanggalPemeriksaan: Date,
@@ -55,30 +118,47 @@ export function hitungUmurLengkap(
   hari: number;
   totalBulan: number;
 } {
-  let tahun = tanggalPemeriksaan.getFullYear() - tanggalLahir.getFullYear();
+  if (tanggalPemeriksaan < tanggalLahir) {
+    throw new Error(
+      "Tanggal pemeriksaan tidak boleh lebih awal dari tanggal lahir.",
+    );
+  }
 
-  let bulan = tanggalPemeriksaan.getMonth() - tanggalLahir.getMonth();
+  let totalBulan =
+    (tanggalPemeriksaan.getFullYear() -
+      tanggalLahir.getFullYear()) *
+      12 +
+    (tanggalPemeriksaan.getMonth() -
+      tanggalLahir.getMonth());
 
-  let hari = tanggalPemeriksaan.getDate() - tanggalLahir.getDate();
-
-  if (hari < 0) {
-    bulan -= 1;
-
-    const bulanSebelumnya = new Date(
-      tanggalPemeriksaan.getFullYear(),
-      tanggalPemeriksaan.getMonth(),
-      0,
+  let tanggalPatokan =
+    tambahBulanTerbatas(
+      tanggalLahir,
+      totalBulan,
     );
 
-    hari += bulanSebelumnya.getDate();
+  if (tanggalPatokan > tanggalPemeriksaan) {
+    totalBulan -= 1;
+
+    tanggalPatokan =
+      tambahBulanTerbatas(
+        tanggalLahir,
+        totalBulan,
+      );
   }
 
-  if (bulan < 0) {
-    tahun -= 1;
-    bulan += 12;
-  }
+  const tahun = Math.floor(
+    totalBulan / 12,
+  );
 
-  const totalBulan = tahun * 12 + bulan;
+  const bulan =
+    totalBulan % 12;
+
+  const hari =
+    selisihHariKalender(
+      tanggalPatokan,
+      tanggalPemeriksaan,
+    );
 
   return {
     tahun,
@@ -93,7 +173,9 @@ export function tentukanKategoriUsia(
   tanggalPemeriksaan: string,
 ): HasilKlasifikasiUsia {
   const lahir = parseTanggal(tanggalLahir);
-  const pemeriksaan = parseTanggal(tanggalPemeriksaan);
+  const pemeriksaan = parseTanggal(
+    tanggalPemeriksaan,
+  );
 
   if (pemeriksaan < lahir) {
     throw new Error(
@@ -101,7 +183,10 @@ export function tentukanKategoriUsia(
     );
   }
 
-  const umur = hitungUmurLengkap(lahir, pemeriksaan);
+  const umur = hitungUmurLengkap(
+    lahir,
+    pemeriksaan,
+  );
 
   let kategori: KategoriUsia;
 

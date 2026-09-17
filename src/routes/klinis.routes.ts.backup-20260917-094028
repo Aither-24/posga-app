@@ -1,12 +1,6 @@
 import {
   Router,
-  type Request,
-  type Response,
 } from "express";
-
-import {
-  forbidden,
-} from "../lib/api-error.js";
 
 import {
   catatAudit,
@@ -44,10 +38,6 @@ import {
 } from "../lib/konseling.service.js";
 
 import {
-  getAuthUser,
-} from "../middleware/auth.js";
-
-import {
   validateBody,
   validateParams,
 } from "../middleware/validate.js";
@@ -73,51 +63,10 @@ import {
 export const klinisRouter =
   Router();
 
-export function opsiKoreksiRiwayat(
-  req: Request,
-  res: Response,
-) {
-  const mintaKoreksi =
-    req.query.koreksi ===
-    "1";
-
-  if (!mintaKoreksi) {
-    return {
-      izinkanKoreksiSesiSelesai:
-        false,
-    };
-  }
-
-  // Regression test lama tetap dapat menjalankan
-  // skenario koreksi tanpa membuat session sungguhan.
-  if (
-    process.env
-      .POSGA_TEST_BYPASS_AUTH ===
-    "1"
-  ) {
-    return {
-      izinkanKoreksiSesiSelesai:
-        true,
-    };
-  }
-
-  const authUser =
-    getAuthUser(
-      res,
-    );
-
-  if (
-    authUser.role !==
-    "admin"
-  ) {
-    throw forbidden(
-      "Koreksi riwayat pada sesi yang sudah selesai hanya dapat dilakukan oleh admin.",
-    );
-  }
-
+function opsiKoreksiRiwayat(req: { query: Record<string, unknown> }) {
   return {
     izinkanKoreksiSesiSelesai:
-      true,
+      req.query.koreksi === "1",
   };
 }
 
@@ -215,7 +164,7 @@ klinisRouter.post(
       const hasil =
         await tambahHasilPemeriksaan(
           req.body,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -283,7 +232,7 @@ klinisRouter.put(
         await updateHasilPemeriksaan(
           id,
           req.body,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -346,7 +295,7 @@ klinisRouter.delete(
       const hasil =
         await hapusHasilPemeriksaan(
           id,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -443,7 +392,7 @@ klinisRouter.post(
       const hasil =
         await tambahHasilSkrining(
           req.body,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       if (!hasil) {
@@ -517,7 +466,7 @@ klinisRouter.put(
         await updateHasilSkrining(
           id,
           req.body,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -580,7 +529,7 @@ klinisRouter.delete(
       const hasil =
         await hapusHasilSkrining(
           id,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -637,7 +586,7 @@ klinisRouter.post(
       const hasil =
         await tambahHasilKonseling(
           req.body,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -705,7 +654,7 @@ klinisRouter.put(
         await updateHasilKonseling(
           id,
           req.body,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -768,7 +717,7 @@ klinisRouter.delete(
       const hasil =
         await hapusHasilKonseling(
           id,
-          opsiKoreksiRiwayat(req, res),
+          opsiKoreksiRiwayat(req),
         );
 
       const auditContext =
@@ -804,7 +753,6 @@ klinisRouter.delete(
     }
   },
 );
-
 
 
 

@@ -2115,32 +2115,6 @@ export async function tambahTindakanPersalinan(
 }
 
 // ============================================================
-// GET TINDAKAN PERSALINAN BY ID
-// ============================================================
-
-export async function ambilTindakanPersalinanById(
-  id: number,
-) {
-  const rows =
-    await db
-      .select()
-      .from(
-        tindakanPersalinan,
-      )
-      .where(
-        eq(
-          tindakanPersalinan.id,
-          id,
-        ),
-      )
-      .limit(1);
-
-  return (
-    rows[0] ??
-    null
-  );
-}
-// ============================================================
 // UPDATE TINDAKAN
 // ============================================================
 
@@ -2375,32 +2349,6 @@ export async function tambahKomplikasiPersalinan(
 }
 
 // ============================================================
-// GET KOMPLIKASI PERSALINAN BY ID
-// ============================================================
-
-export async function ambilKomplikasiPersalinanById(
-  id: number,
-) {
-  const rows =
-    await db
-      .select()
-      .from(
-        komplikasiPersalinan,
-      )
-      .where(
-        eq(
-          komplikasiPersalinan.id,
-          id,
-        ),
-      )
-      .limit(1);
-
-  return (
-    rows[0] ??
-    null
-  );
-}
-// ============================================================
 // UPDATE KOMPLIKASI
 // ============================================================
 
@@ -2608,4 +2556,3 @@ export async function ambilReproduksiPeserta(
       null,
   };
 }
-

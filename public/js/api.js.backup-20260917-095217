@@ -1,99 +1,55 @@
 (() => {
-  const STORAGE_KEY =
-    "posga.auth";
+  const STORAGE_KEY = "posga.auth";
 
   function bacaAuth() {
     try {
-      const raw =
-        localStorage.getItem(
-          STORAGE_KEY,
-        );
+      const raw = localStorage.getItem(STORAGE_KEY);
 
       if (!raw) {
         return null;
       }
 
-      const parsed =
-        JSON.parse(
-          raw,
-        );
+      const parsed = JSON.parse(raw);
 
       if (
         !parsed ||
-        typeof parsed !==
-          "object"
+        typeof parsed.token !== "string" ||
+        !parsed.token
       ) {
-        localStorage.removeItem(
-          STORAGE_KEY,
-        );
-
+        localStorage.removeItem(STORAGE_KEY);
         return null;
       }
 
       return parsed;
     } catch {
-      localStorage.removeItem(
-        STORAGE_KEY,
-      );
-
+      localStorage.removeItem(STORAGE_KEY);
       return null;
     }
   }
 
-  function simpanAuth(
-    data,
-  ) {
-    // Jangan pernah simpan bearer token.
-    const aman = {
-      expiresAt:
-        data?.expiresAt ??
-        null,
-
-      user:
-        data?.user ??
-        null,
-    };
-
+  function simpanAuth(data) {
     localStorage.setItem(
       STORAGE_KEY,
-      JSON.stringify(
-        aman,
-      ),
+      JSON.stringify(data),
     );
   }
 
   function hapusAuth() {
-    localStorage.removeItem(
-      STORAGE_KEY,
-    );
+    localStorage.removeItem(STORAGE_KEY);
   }
 
-  function tokenKadaluarsa(
-    auth,
-  ) {
-    if (
-      !auth?.expiresAt
-    ) {
+  function tokenKadaluarsa(auth) {
+    if (!auth?.expiresAt) {
       return false;
     }
 
-    const expiresAt =
-      new Date(
-        auth.expiresAt,
-      ).getTime();
+    const expiresAt = new Date(auth.expiresAt).getTime();
 
-    if (
-      Number.isNaN(
-        expiresAt,
-      )
-    ) {
+    if (Number.isNaN(expiresAt)) {
       return false;
     }
 
-    return (
-      expiresAt <=
-      Date.now()
-    );
+    return expiresAt <= Date.now();
   }
 
   function arahkanKeLogin() {
@@ -102,8 +58,7 @@
 
     const params =
       new URLSearchParams({
-        next:
-          tujuan,
+        next: tujuan,
       });
 
     window.location.replace(
@@ -117,15 +72,9 @@
   ) {
     const {
       auth = true,
-
-      redirectUnauthorized =
-        true,
-
-      headers:
-        customHeaders = {},
-
+      redirectUnauthorized = true,
+      headers: customHeaders = {},
       body,
-
       ...fetchOptions
     } = options;
 
@@ -143,16 +92,10 @@
       body;
 
     if (
-      body !==
-        undefined &&
-      body !==
-        null &&
-      !(
-        body instanceof
-        FormData
-      ) &&
-      typeof body !==
-        "string"
+      body !== undefined &&
+      body !== null &&
+      !(body instanceof FormData) &&
+      typeof body !== "string"
     ) {
       headers.set(
         "Content-Type",
@@ -165,21 +108,33 @@
         );
     }
 
-    // Cookie HttpOnly menjadi sumber autentikasi.
-    //
-    // Metadata lokal hanya digunakan untuk tampilan UI,
-    // bukan sebagai bukti autentikasi.
-    const authData =
-      bacaAuth();
+    if (auth) {
+      const authData =
+        bacaAuth();
 
-    if (
-      auth &&
-      authData &&
-      tokenKadaluarsa(
-        authData,
-      )
-    ) {
-      hapusAuth();
+      if (
+        !authData ||
+        tokenKadaluarsa(
+          authData,
+        )
+      ) {
+        hapusAuth();
+
+        if (
+          redirectUnauthorized
+        ) {
+          arahkanKeLogin();
+        }
+
+        throw new Error(
+          "Sesi autentikasi tidak tersedia.",
+        );
+      }
+
+      headers.set(
+        "Authorization",
+        `Bearer ${authData.token}`,
+      );
     }
 
     let response;
@@ -190,9 +145,6 @@
           path,
           {
             ...fetchOptions,
-
-            credentials:
-              "same-origin",
 
             headers,
 
@@ -209,8 +161,7 @@
     const contentType =
       response.headers.get(
         "content-type",
-      ) ??
-      "";
+      ) ?? "";
 
     let payload =
       null;
@@ -243,14 +194,14 @@
       }
     }
 
-    if (!response.ok) {
+    if (
+      !response.ok
+    ) {
       const pesan =
         payload?.message ??
-        payload?.error
-          ?.message ??
+        payload?.error?.message ??
         payload?.error ??
-        payload?.data
-          ?.message ??
+        payload?.data?.message ??
         `Request gagal (${response.status}).`;
 
       const error =
@@ -279,13 +230,8 @@
   ) {
     const {
       auth = true,
-
-      redirectUnauthorized =
-        true,
-
-      headers:
-        customHeaders = {},
-
+      redirectUnauthorized = true,
+      headers: customHeaders = {},
       ...fetchOptions
     } = options;
 
@@ -299,17 +245,33 @@
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/octet-stream,*/*",
     );
 
-    const authData =
-      bacaAuth();
+    if (auth) {
+      const authData =
+        bacaAuth();
 
-    if (
-      auth &&
-      authData &&
-      tokenKadaluarsa(
-        authData,
-      )
-    ) {
-      hapusAuth();
+      if (
+        !authData ||
+        tokenKadaluarsa(
+          authData,
+        )
+      ) {
+        hapusAuth();
+
+        if (
+          redirectUnauthorized
+        ) {
+          arahkanKeLogin();
+        }
+
+        throw new Error(
+          "Sesi autentikasi tidak tersedia.",
+        );
+      }
+
+      headers.set(
+        "Authorization",
+        `Bearer ${authData.token}`,
+      );
     }
 
     let response;
@@ -320,10 +282,6 @@
           path,
           {
             ...fetchOptions,
-
-            credentials:
-              "same-origin",
-
             headers,
           },
         );
@@ -354,8 +312,7 @@
       const contentType =
         response.headers.get(
           "content-type",
-        ) ??
-        "";
+        ) ?? "";
 
       if (
         contentType.includes(
@@ -373,11 +330,9 @@
 
       const pesan =
         payload?.message ??
-        payload?.error
-          ?.message ??
+        payload?.error?.message ??
         payload?.error ??
-        payload?.data
-          ?.message ??
+        payload?.data?.message ??
         `Request gagal (${response.status}).`;
 
       const error =
@@ -399,7 +354,6 @@
 
     return {
       response,
-
       blob:
         await response.blob(),
     };

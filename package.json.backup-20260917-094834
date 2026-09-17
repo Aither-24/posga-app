@@ -14,10 +14,7 @@
                     "dev":  "tsx watch src/server.ts",
                     "start":  "node dist/server.js",
                     "clean":  "node -e \"require(\u0027node:fs\u0027).rmSync(\u0027dist\u0027,{recursive:true,force:true})\"",
-                    "build:server":  "tsc -p tsconfig.build.json",
-                    "migrate":  "node dist/db/run-migrate.js",
-                    "seed:indikator":  "node dist/db/seed-indikator-posga.js",
-                    "seed:admin":  "node dist/db/seed-admin.js"
+                    "build:server":  "tsc -p tsconfig.build.json"
                 },
     "keywords":  [
 

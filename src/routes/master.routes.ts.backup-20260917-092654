@@ -1,4 +1,4 @@
-import {
+﻿import {
   cariPesertaTerkelola,
   pindahPesertaTerkelola,
   tambahPesertaTerkelola,
@@ -145,36 +145,7 @@ masterRouter.post(
 
   async (req, res, next) => {
     try {
-      const data =
-        await tambahLokasi(
-          req.body,
-        );
-
-      if (!data) {
-        throw new Error(
-          "Gagal membuat lokasi.",
-        );
-      }
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "CREATE",
-
-        entitas: "lokasi",
-
-        entitasId:
-          data.id,
-
-        dataSesudah:
-          data,
-      });
+      const data = await tambahLokasi(req.body);
 
       res.status(201).json({
         success: true,
@@ -201,48 +172,9 @@ masterRouter.put(
 
   async (req, res, next) => {
     try {
-      const id =
-        Number(
-          req.params.id,
-        );
+      const id = Number(req.params.id);
 
-      const dataSebelum =
-        await ambilLokasiById(
-          id,
-        );
-
-      if (!dataSebelum) {
-        throw notFound(
-          "Lokasi tidak ditemukan.",
-        );
-      }
-
-      const data =
-        await updateLokasi(
-          id,
-          req.body,
-        );
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "UPDATE",
-
-        entitas: "lokasi",
-
-        entitasId: id,
-
-        dataSebelum,
-
-        dataSesudah:
-          data,
-      });
+      const data = await updateLokasi(id, req.body);
 
       res.json({
         success: true,
@@ -267,47 +199,9 @@ masterRouter.delete(
 
   async (req, res, next) => {
     try {
-      const id =
-        Number(
-          req.params.id,
-        );
+      const id = Number(req.params.id);
 
-      const dataSebelum =
-        await ambilLokasiById(
-          id,
-        );
-
-      if (!dataSebelum) {
-        throw notFound(
-          "Lokasi tidak ditemukan.",
-        );
-      }
-
-      const data =
-        await nonaktifkanLokasi(
-          id,
-        );
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "UPDATE",
-
-        entitas: "lokasi",
-
-        entitasId: id,
-
-        dataSebelum,
-
-        dataSesudah:
-          data,
-      });
+      const data = await nonaktifkanLokasi(id);
 
       res.json({
         success: true,
@@ -390,36 +284,7 @@ masterRouter.post(
 
   async (req, res, next) => {
     try {
-      const data =
-        await tambahPosyandu(
-          req.body,
-        );
-
-      if (!data) {
-        throw new Error(
-          "Gagal membuat Posyandu.",
-        );
-      }
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "CREATE",
-
-        entitas: "posyandu",
-
-        entitasId:
-          data.id,
-
-        dataSesudah:
-          data,
-      });
+      const data = await tambahPosyandu(req.body);
 
       res.status(201).json({
         success: true,
@@ -446,48 +311,9 @@ masterRouter.put(
 
   async (req, res, next) => {
     try {
-      const id =
-        Number(
-          req.params.id,
-        );
+      const id = Number(req.params.id);
 
-      const dataSebelum =
-        await ambilPosyanduById(
-          id,
-        );
-
-      if (!dataSebelum) {
-        throw notFound(
-          "Posyandu tidak ditemukan.",
-        );
-      }
-
-      const data =
-        await updatePosyandu(
-          id,
-          req.body,
-        );
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "UPDATE",
-
-        entitas: "posyandu",
-
-        entitasId: id,
-
-        dataSebelum,
-
-        dataSesudah:
-          data,
-      });
+      const data = await updatePosyandu(id, req.body);
 
       res.json({
         success: true,
@@ -514,47 +340,9 @@ masterRouter.post(
 
   async (req, res, next) => {
     try {
-      const id =
-        Number(
-          req.params.id,
-        );
+      const id = Number(req.params.id);
 
-      const dataSebelum =
-        await ambilPosyanduById(
-          id,
-        );
-
-      if (!dataSebelum) {
-        throw notFound(
-          "Posyandu tidak ditemukan.",
-        );
-      }
-
-      const data =
-        await nonaktifkanPosyandu(
-          id,
-        );
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "UPDATE",
-
-        entitas: "posyandu",
-
-        entitasId: id,
-
-        dataSebelum,
-
-        dataSesudah:
-          data,
-      });
+      const data = await nonaktifkanPosyandu(id);
 
       res.json({
         success: true,
@@ -582,44 +370,9 @@ masterRouter.delete(
 
   async (req, res, next) => {
     try {
-      const id =
-        Number(
-          req.params.id,
-        );
+      const id = Number(req.params.id);
 
-      const dataSebelum =
-        await ambilPosyanduById(
-          id,
-        );
-
-      if (!dataSebelum) {
-        throw notFound(
-          "Posyandu tidak ditemukan.",
-        );
-      }
-
-      const data =
-        await hapusPosyanduPermanen(
-          id,
-        );
-
-      const auditContext =
-        ambilAuditContext(
-          req,
-          res,
-        );
-
-      await catatAudit({
-        ...auditContext,
-
-        aksi: "DELETE",
-
-        entitas: "posyandu",
-
-        entitasId: id,
-
-        dataSebelum,
-      });
+      const data = await hapusPosyanduPermanen(id);
 
       res.json({
         success: true,

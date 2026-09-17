@@ -10,14 +10,9 @@
                     "check":  "tsc --noEmit",
                     "test:final-data":  "tsx src/tests/test-final-data-validation.ts",
                     "test:export":  "tsx src/tests/test-api-export-excel.ts",
-                    "build":  "npm run clean \u0026\u0026 npm run build:css \u0026\u0026 npm run build:server",
+                    "build":  "npm run build:css \u0026\u0026 npm run check",
                     "dev":  "tsx watch src/server.ts",
-                    "start":  "node dist/server.js",
-                    "clean":  "node -e \"require(\u0027node:fs\u0027).rmSync(\u0027dist\u0027,{recursive:true,force:true})\"",
-                    "build:server":  "tsc -p tsconfig.build.json",
-                    "migrate":  "node dist/db/run-migrate.js",
-                    "seed:indikator":  "node dist/db/seed-indikator-posga.js",
-                    "seed:admin":  "node dist/db/seed-admin.js"
+                    "start":  "tsx src/server.ts"
                 },
     "keywords":  [
 

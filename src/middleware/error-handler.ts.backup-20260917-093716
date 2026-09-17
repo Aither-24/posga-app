@@ -115,8 +115,6 @@ function deteksiStatusError(
     "sudah terdaftar",
     "sudah ada",
     "duplikat",
-    "bertumpang tindih",
-    "tumpang tindih",
     "masih aktif",
     "masih memiliki",
     "sudah memiliki",
@@ -314,4 +312,3 @@ export const errorHandler:
           },
         });
     };
-

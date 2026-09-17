@@ -116,28 +116,10 @@ document.addEventListener("alpine:init", () => {
       );
     },
 
-    get adalahAdmin() {
-      return (
-        window.PosgaApi
-          .bacaAuth()
-          ?.user
-          ?.role ===
-        "admin"
-      );
-    },
-
     get dapatEdit() {
-      const sesiSelesai =
-        this.sesi?.status ===
-        "selesai";
-
       return (
         this.sesi?.status !==
           "dibatalkan" &&
-        (
-          !sesiSelesai ||
-          this.adalahAdmin
-        ) &&
         this.pesertaAktif &&
         ![
           "tidak_hadir",
@@ -461,8 +443,7 @@ document.addEventListener("alpine:init", () => {
     urlTulis(path) {
       if (
         this.sesi?.status ===
-          "selesai" &&
-        this.adalahAdmin
+        "selesai"
       ) {
         const pemisah =
           path.includes("?")
@@ -2393,4 +2374,3 @@ document.addEventListener("alpine:init", () => {
     },
   }));
 });
-

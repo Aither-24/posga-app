@@ -150,12 +150,6 @@ masterRouter.post(
           req.body,
         );
 
-      if (!data) {
-        throw new Error(
-          "Gagal membuat lokasi.",
-        );
-      }
-
       const auditContext =
         ambilAuditContext(
           req,
@@ -170,7 +164,7 @@ masterRouter.post(
         entitas: "lokasi",
 
         entitasId:
-          data.id,
+          data?.id,
 
         dataSesudah:
           data,
@@ -395,12 +389,6 @@ masterRouter.post(
           req.body,
         );
 
-      if (!data) {
-        throw new Error(
-          "Gagal membuat Posyandu.",
-        );
-      }
-
       const auditContext =
         ambilAuditContext(
           req,
@@ -415,7 +403,7 @@ masterRouter.post(
         entitas: "posyandu",
 
         entitasId:
-          data.id,
+          data?.id,
 
         dataSesudah:
           data,

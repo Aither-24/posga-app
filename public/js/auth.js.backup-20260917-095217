@@ -1,4 +1,4 @@
-(() => {
+﻿(() => {
   const DEFAULT_USER = {
     id: null,
     username: "",
@@ -7,9 +7,7 @@
     expiresAt: null,
   };
 
-  function normalisasiUser(
-    data,
-  ) {
+  function normalisasiUser(data) {
     return {
       id:
         data?.id ??
@@ -47,15 +45,9 @@
 
     if (
       next &&
-      next.startsWith(
-        "/",
-      ) &&
-      !next.startsWith(
-        "//",
-      ) &&
-      !next.startsWith(
-        "/login",
-      )
+      next.startsWith("/") &&
+      !next.startsWith("//") &&
+      !next.startsWith("/login")
     ) {
       return next;
     }
@@ -63,12 +55,25 @@
     return "/";
   }
 
-  async function verifikasiSession(
-    {
-      redirectUnauthorized =
-        true,
-    } = {},
-  ) {
+  async function verifikasiSession() {
+    const auth =
+      window.PosgaApi.bacaAuth();
+
+    if (
+      !auth ||
+      window.PosgaApi.tokenKadaluarsa(
+        auth,
+      )
+    ) {
+      window.PosgaApi.hapusAuth();
+
+      window.PosgaApi.arahkanKeLogin();
+
+      throw new Error(
+        "Sesi tidak tersedia.",
+      );
+    }
+
     const payload =
       await window.PosgaApi.request(
         "/api/auth/me",
@@ -79,7 +84,8 @@
           auth:
             true,
 
-          redirectUnauthorized,
+          redirectUnauthorized:
+            true,
         },
       );
 
@@ -89,8 +95,12 @@
       );
 
     window.PosgaApi.simpanAuth({
+      token:
+        auth.token,
+
       expiresAt:
         user.expiresAt ??
+        auth.expiresAt ??
         null,
 
       user,
@@ -100,22 +110,28 @@
   }
 
   async function logout() {
+    const auth =
+      window.PosgaApi.bacaAuth();
+
     try {
-      await window.PosgaApi.request(
-        "/api/auth/logout",
-        {
-          method:
-            "POST",
+      if (auth?.token) {
+        await window.PosgaApi.request(
+          "/api/auth/logout",
+          {
+            method:
+              "POST",
 
-          auth:
-            true,
+            auth:
+              true,
 
-          redirectUnauthorized:
-            false,
-        },
-      );
+            redirectUnauthorized:
+              false,
+          },
+        );
+      }
     } catch {
-      // Metadata lokal tetap dibersihkan.
+      // Logout lokal tetap dilakukan bila server sudah
+      // menganggap sesi tidak valid / tidak tersedia.
     } finally {
       window.PosgaApi.hapusAuth();
 
@@ -133,7 +149,6 @@
 
   document.addEventListener(
     "alpine:init",
-
     () => {
       Alpine.store(
         "auth",
@@ -156,10 +171,7 @@
               this.loading =
                 false;
 
-              document
-                .documentElement
-                .dataset
-                .authReady =
+              document.documentElement.dataset.authReady =
                 "true";
             }
           },
@@ -172,7 +184,6 @@
 
       Alpine.data(
         "loginPage",
-
         () => ({
           username:
             "",
@@ -193,23 +204,35 @@
             false,
 
           async init() {
+            const auth =
+              window.PosgaApi.bacaAuth();
+
+            if (
+              !auth ||
+              window.PosgaApi.tokenKadaluarsa(
+                auth,
+              )
+            ) {
+              window.PosgaApi.hapusAuth();
+
+              this.checking =
+                false;
+
+              return;
+            }
+
             try {
-              await verifikasiSession({
-                redirectUnauthorized:
-                  false,
-              });
+              await verifikasiSession();
 
               window.location.replace(
                 nextTujuan(),
               );
-
-              return;
             } catch {
               window.PosgaApi.hapusAuth();
-            }
 
-            this.checking =
-              false;
+              this.checking =
+                false;
+            }
           },
 
           async submit() {
@@ -223,8 +246,7 @@
               "";
 
             const username =
-              this.username
-                .trim();
+              this.username.trim();
 
             if (
               !username ||
@@ -266,6 +288,7 @@
                 payload?.data;
 
               if (
+                !data?.token ||
                 !data?.user
               ) {
                 throw new Error(
@@ -274,6 +297,9 @@
               }
 
               window.PosgaApi.simpanAuth({
+                token:
+                  data.token,
+
                 expiresAt:
                   data.expiresAt ??
                   null,
@@ -291,10 +317,11 @@
               window.location.replace(
                 nextTujuan(),
               );
-            } catch (error) {
+            } catch (
+              error
+            ) {
               this.error =
-                error instanceof
-                  Error
+                error instanceof Error
                   ? error.message
                   : "Login gagal.";
 
@@ -310,3 +337,4 @@
     },
   );
 })();
+
