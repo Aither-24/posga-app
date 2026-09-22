@@ -1,32 +1,61 @@
 import Database from "better-sqlite3";
-import { drizzle } from "drizzle-orm/better-sqlite3";
-import { migrate } from "drizzle-orm/better-sqlite3/migrator";
 
-const sqlite = new Database("data/posga.db");
+import {
+  drizzle,
+} from "drizzle-orm/better-sqlite3";
 
-sqlite.pragma("foreign_keys = ON");
+import {
+  migrate,
+} from "drizzle-orm/better-sqlite3/migrator";
 
-const db = drizzle(sqlite);
+import {
+  DATABASE_PATH,
+  pastikanDirektoriDatabase,
+} from "./database-path.js";
 
-console.log("=== MENJALANKAN MIGRATION ===");
+pastikanDirektoriDatabase();
+
+const sqlite =
+  new Database(
+    DATABASE_PATH,
+  );
+
+sqlite.pragma(
+  "foreign_keys = ON",
+);
+
+const db =
+  drizzle(
+    sqlite,
+  );
+
+console.log(
+  "=== MENJALANKAN MIGRATION ===",
+);
 
 try {
-  migrate(db, {
-    migrationsFolder:
-      "./src/db/migrations",
-  });
+  migrate(
+    db,
+    {
+      migrationsFolder:
+        "./src/db/migrations",
+    },
+  );
 
   console.log(
-    "=== MIGRATION SELESAI ==="
+    "=== MIGRATION SELESAI ===",
   );
 } catch (error) {
   console.error(
-    "=== MIGRATION GAGAL ==="
+    "=== MIGRATION GAGAL ===",
   );
 
-  console.error(error);
+  console.error(
+    error,
+  );
 
-  process.exitCode = 1;
+  process.exitCode =
+    1;
 } finally {
   sqlite.close();
 }

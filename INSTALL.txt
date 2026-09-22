@@ -1,0 +1,9 @@
+Ekstrak isi bundle ke root project POSGA lalu pilih Replace bila file package.json diminta ditimpa.
+
+Dry run PowerShell:
+  .\seed-peserta-asli.ps1
+
+Commit setelah dry run benar:
+  .\seed-peserta-asli.ps1 -Commit
+
+Data asli berada di data/private dan harus tetap privat.
