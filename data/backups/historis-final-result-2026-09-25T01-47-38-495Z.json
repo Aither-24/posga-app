@@ -1,0 +1,105 @@
+{
+  "backupPath": "C:\\Users\\PKM KREMSEL\\Documents\\GitHub\\posga-app\\data\\backups\\posga-before-historis-final-2026-09-25T01-47-38-495Z.db",
+  "commitCounts": {
+    "bioAnak": {
+      "insert": 3345,
+      "update": 0,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "bioDewasa": {
+      "insert": 2741,
+      "update": 0,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "pregnancy": {
+      "insert": 82,
+      "update": 0,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "postpartum": {
+      "insert": 132,
+      "update": 0,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "complications": {
+      "insert": 8,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "actions": {
+      "insert": 0,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "sessions": {
+      "insert": 386,
+      "reuse": 0,
+      "conflict": 0
+    },
+    "participantSessions": {
+      "insert": 21118,
+      "reuse": 0,
+      "replaceSafe": 0,
+      "conflict": 0
+    },
+    "examinations": {
+      "insert": 100282,
+      "reuse": 0,
+      "replaceSafe": 0,
+      "conflict": 0
+    },
+    "counseling": {
+      "insert": 1104,
+      "reuse": 0,
+      "replaceSafe": 0,
+      "conflict": 0
+    },
+    "screenings": {
+      "insert": 1387,
+      "reuse": 0,
+      "replaceSafe": 0,
+      "linkUpgrade": 0,
+      "conflict": 0
+    }
+  },
+  "verification": {
+    "ok": true,
+    "errors": [],
+    "errorCount": 0,
+    "foreignKeyViolations": 0,
+    "duplicates": {
+      "sessions": 0,
+      "participantSessions": 0,
+      "examinations": 0
+    },
+    "verified": {
+      "sessions": 386,
+      "participantSessions": 21118,
+      "rawExaminations": 100282,
+      "counseling": 1104,
+      "screenings": 1387,
+      "biodataAnak": 3345,
+      "biodataDewasa": 2741,
+      "pregnancyEpisodes": 82,
+      "postpartumEpisodes": 132
+    },
+    "totals": {
+      "sessions": 387,
+      "participantSessions": 21203,
+      "examinationsAll": 212876,
+      "examinationsBase": 100282,
+      "examinationsDerived": 112594,
+      "counseling": 1104,
+      "screening": 1387,
+      "biodataAnak": 3345,
+      "biodataDewasa": 2741,
+      "pregnancy": 82,
+      "postpartum": 132,
+      "complications": 8
+    }
+  }
+}

@@ -1,4 +1,9 @@
-import * as XLSX from "xlsx";
+import ExcelJS from "@ayocore/exceljs";
+
+import type {
+  Cell,
+  Worksheet,
+} from "@ayocore/exceljs";
 
 import {
   and,
@@ -6,10 +11,8 @@ import {
   eq,
   gte,
   inArray,
-  isNull,
   lte,
   ne,
-  or,
 } from "drizzle-orm";
 
 import {
@@ -268,68 +271,208 @@ function periodeLabel(
   return "Seluruh periode";
 }
 
-function autoLebar(
-  rows: unknown[][],
+const WARNA = {
+  hijauTua: "FF2F6B3B",
+  hijau: "FF70AD47",
+  hijauMuda: "FFE2F0D9",
+  hijauSangatMuda: "FFF3F8EF",
+  biru: "FF5B9BD5",
+  biruMuda: "FFDDEBF7",
+  kuningMuda: "FFFFF2CC",
+  abu: "FFE7E6E6",
+  abuGelap: "FF7F7F7F",
+  putih: "FFFFFFFF",
+  hitam: "FF000000",
+  garis: "FFB7B7B7",
+} as const;
+
+function tanggalIndonesiaPanjang(
+  value:
+    | string
+    | null
+    | undefined,
 ) {
-  const maxCols =
-    Math.max(
-      0,
-      ...rows.map(
-        (row) =>
-          row.length,
-      ),
-    );
+  if (!value) {
+    return "";
+  }
 
-  return Array.from(
+  const [
+    tahun,
+    bulan,
+    hari,
+  ] = value
+    .split("-")
+    .map(Number);
+
+  if (
+    !tahun ||
+    !bulan ||
+    !hari
+  ) {
+    return value;
+  }
+
+  return new Intl.DateTimeFormat(
+    "id-ID",
     {
-      length:
-        maxCols,
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      timeZone: "UTC",
     },
-    (
-      _,
-      col,
-    ) => {
-      let width =
-        10;
+  )
+    .format(
+      new Date(
+        Date.UTC(
+          tahun,
+          bulan - 1,
+          hari,
+        ),
+      ),
+    )
+    .toUpperCase();
+}
 
-      for (
-        const row of rows.slice(
-          0,
-          120,
-        )
-      ) {
-        const value =
-          row[col];
-
-        const panjang =
-          value ===
-            null ||
-          value ===
-            undefined
-            ? 0
-            : String(
-                value,
-              ).length;
-
-        width =
-          Math.max(
-            width,
-            Math.min(
-              panjang +
-                2,
-              col <
-                12
-                ? 28
-                : 24,
-            ),
-          );
-      }
-
-      return {
-        wch:
-          width,
-      };
+function isiSolid(
+  cell: Cell,
+  argb: string,
+) {
+  cell.fill = {
+    type: "pattern",
+    pattern: "solid",
+    fgColor: {
+      argb,
     },
+  };
+}
+
+function beriBorder(
+  cell: Cell,
+) {
+  cell.border = {
+    top: {
+      style: "thin",
+      color: {
+        argb: WARNA.garis,
+      },
+    },
+    left: {
+      style: "thin",
+      color: {
+        argb: WARNA.garis,
+      },
+    },
+    bottom: {
+      style: "thin",
+      color: {
+        argb: WARNA.garis,
+      },
+    },
+    right: {
+      style: "thin",
+      color: {
+        argb: WARNA.garis,
+      },
+    },
+  };
+}
+
+function warnaKelompok(
+  kelompok: string,
+) {
+  if (
+    kelompok ===
+    "skrining"
+  ) {
+    return WARNA.biruMuda;
+  }
+
+  if (
+    kelompok ===
+    "konseling"
+  ) {
+    return WARNA.kuningMuda;
+  }
+
+  return WARNA.hijauMuda;
+}
+
+function lebarIndikator(
+  nama: string,
+  satuan:
+    | string
+    | null,
+) {
+  const panjang =
+    `${nama}${satuan ?? ""}`
+      .length;
+
+  return Math.max(
+    12,
+    Math.min(
+      22,
+      Math.ceil(
+        panjang *
+          0.72,
+      ),
+    ),
+  );
+}
+
+function formatWorksheetUmum(
+  worksheet: Worksheet,
+) {
+  worksheet.properties.defaultRowHeight =
+    18;
+
+  worksheet.pageSetup = {
+    orientation: "landscape",
+    paperSize: 9,
+    fitToPage: true,
+    fitToWidth: 1,
+    fitToHeight: 0,
+    horizontalCentered: false,
+    verticalCentered: false,
+    margins: {
+      left: 0.25,
+      right: 0.25,
+      top: 0.5,
+      bottom: 0.5,
+      header: 0.2,
+      footer: 0.2,
+    },
+  };
+
+  worksheet.headerFooter.oddFooter =
+    "&LExport POSGA&CPage &P dari &N&R&D &T";
+}
+
+function setNilaiCell(
+  cell: Cell,
+  value: unknown,
+) {
+  if (
+    value === null ||
+    value === undefined
+  ) {
+    cell.value = "";
+    return;
+  }
+
+  if (
+    typeof value ===
+      "string" ||
+    typeof value ===
+      "number" ||
+    typeof value ===
+      "boolean"
+  ) {
+    cell.value = value;
+    return;
+  }
+
+  cell.value = String(
+    value,
   );
 }
 
@@ -437,8 +580,18 @@ export async function buatExportExcelPosga(
           peserta.nik,
         nama:
           peserta.nama,
+        noRm:
+          peserta.noRm,
+        noTelp:
+          peserta.noTelp,
         tanggalLahir:
           peserta.tanggalLahir,
+        alamatKtp:
+          peserta.alamatKtp,
+        rtKtp:
+          peserta.rtKtp,
+        rwKtp:
+          peserta.rwKtp,
         jenisKelamin:
           peserta.jenisKelamin,
         alamatDomisili:
@@ -1152,43 +1305,217 @@ export async function buatExportExcelPosga(
       );
 
   const workbook =
-    XLSX.utils.book_new();
+    new ExcelJS.Workbook();
 
-  const infoRows: unknown[][] =
-    [
-      [
-        "POSGA - EXPORT DATA POSYANDU",
-      ],
-      [
-        "Lokasi",
-        tempat.lokasiNama,
-      ],
-      [
-        "Posyandu",
-        tempat.nama,
-      ],
-      [
-        "Periode",
-        periodeLabel(
-          query,
-        ),
-      ],
-      [
-        "Dibuat",
-        new Date().toLocaleString(
-          "id-ID",
+  workbook.creator =
+    "POSGA";
+  workbook.lastModifiedBy =
+    "POSGA";
+  workbook.created =
+    new Date();
+  workbook.modified =
+    new Date();
+  workbook.calcProperties.fullCalcOnLoad =
+    true;
+
+  const infoSheet =
+    workbook.addWorksheet(
+      "Ringkasan",
+      {
+        views: [
           {
-            timeZone:
-              "Asia/Jakarta",
+            state:
+              "frozen",
+            ySplit: 7,
           },
-        ),
-      ],
-      [],
+        ],
+      },
+    );
+
+  formatWorksheetUmum(
+    infoSheet,
+  );
+
+  infoSheet.pageSetup.orientation =
+    "portrait";
+
+  infoSheet.mergeCells(
+    "A1:D1",
+  );
+
+  const infoTitle =
+    infoSheet.getCell(
+      "A1",
+    );
+
+  infoTitle.value =
+    "POSGA - EXPORT DATA POSYANDU";
+  infoTitle.font = {
+    bold: true,
+    color: {
+      argb:
+        WARNA.putih,
+    },
+    size: 16,
+  };
+  infoTitle.alignment = {
+    horizontal:
+      "center",
+    vertical:
+      "middle",
+  };
+  isiSolid(
+    infoTitle,
+    WARNA.hijauTua,
+  );
+  infoSheet.getRow(1).height =
+    28;
+
+  const ringkasanMeta: Array<[
+    string,
+    string,
+  ]> = [
+    [
+      "Lokasi",
+      tempat.lokasiNama,
+    ],
+    [
+      "Posyandu",
+      tempat.nama,
+    ],
+    [
+      "Periode",
+      periodeLabel(
+        query,
+      ),
+    ],
+    [
+      "Dibuat",
+      new Date().toLocaleString(
+        "id-ID",
+        {
+          timeZone:
+            "Asia/Jakarta",
+        },
+      ),
+    ],
+  ];
+
+  ringkasanMeta.forEach(
+    (
       [
-        "Kategori",
-        "Jumlah Baris",
+        label,
+        value,
       ],
-    ];
+      index,
+    ) => {
+      const row =
+        index +
+        2;
+
+      infoSheet.getCell(
+        row,
+        1,
+      ).value =
+        label;
+      infoSheet.getCell(
+        row,
+        2,
+      ).value =
+        value;
+      infoSheet.mergeCells(
+        row,
+        2,
+        row,
+        4,
+      );
+
+      const labelCell =
+        infoSheet.getCell(
+          row,
+          1,
+        );
+
+      labelCell.font = {
+        bold: true,
+      };
+      isiSolid(
+        labelCell,
+        WARNA.hijauMuda,
+      );
+
+      for (
+        let col = 1;
+        col <= 4;
+        col += 1
+      ) {
+        const cell =
+          infoSheet.getCell(
+            row,
+            col,
+          );
+
+        beriBorder(
+          cell,
+        );
+        cell.alignment = {
+          vertical:
+            "middle",
+          wrapText: true,
+        };
+      }
+    },
+  );
+
+  const ringkasanHeaderRow =
+    7;
+
+  [
+    "Kategori",
+    "Peserta Unik",
+    "Kunjungan",
+    "Tanggal Sesi",
+  ].forEach(
+    (
+      value,
+      index,
+    ) => {
+      const cell =
+        infoSheet.getCell(
+          ringkasanHeaderRow,
+          index +
+            1,
+        );
+
+      cell.value =
+        value;
+      cell.font = {
+        bold: true,
+        color: {
+          argb:
+            WARNA.putih,
+        },
+      };
+      cell.alignment = {
+        horizontal:
+          "center",
+        vertical:
+          "middle",
+        wrapText: true,
+      };
+      isiSolid(
+        cell,
+        WARNA.hijauTua,
+      );
+      beriBorder(
+        cell,
+      );
+    },
+  );
+
+  let ringkasanRow =
+    ringkasanHeaderRow +
+    1;
 
   for (
     const definisi of
@@ -1202,35 +1529,102 @@ export async function buatExportExcelPosga(
       continue;
     }
 
-    infoRows.push([
-      definisi.label,
+    const kategoriRows =
       dataDasar.filter(
         (row) =>
           row.kategori ===
           definisi.kode,
-      ).length,
-    ]);
-  }
+      );
 
-  const infoSheet =
-    XLSX.utils.aoa_to_sheet(
-      infoRows,
+    const pesertaUnik =
+      new Set(
+        kategoriRows.map(
+          (row) =>
+            row.pesertaNik,
+        ),
+      ).size;
+
+    const tanggalUnik =
+      new Set(
+        kategoriRows.map(
+          (row) =>
+            row.tanggalPosga,
+        ),
+      ).size;
+
+    const values: unknown[] = [
+      definisi.label,
+      pesertaUnik,
+      kategoriRows.length,
+      tanggalUnik,
+    ];
+
+    values.forEach(
+      (
+        value,
+        index,
+      ) => {
+        const cell =
+          infoSheet.getCell(
+            ringkasanRow,
+            index +
+              1,
+          );
+
+        setNilaiCell(
+          cell,
+          value,
+        );
+        beriBorder(
+          cell,
+        );
+        cell.alignment = {
+          vertical:
+            "middle",
+          horizontal:
+            index ===
+              0
+              ? "left"
+              : "center",
+        };
+      },
     );
 
-  infoSheet["!cols"] = [
-    {
-      wch: 22,
-    },
-    {
-      wch: 36,
-    },
-  ];
+    ringkasanRow +=
+      1;
+  }
 
-  XLSX.utils.book_append_sheet(
-    workbook,
-    infoSheet,
-    "Ringkasan",
-  );
+  infoSheet.getColumn(1).width =
+    24;
+  infoSheet.getColumn(2).width =
+    24;
+  infoSheet.getColumn(3).width =
+    18;
+  infoSheet.getColumn(4).width =
+    18;
+  infoSheet.autoFilter = {
+    from: {
+      row:
+        ringkasanHeaderRow,
+      column: 1,
+    },
+    to: {
+      row:
+        Math.max(
+          ringkasanHeaderRow,
+          ringkasanRow -
+            1,
+        ),
+      column: 4,
+    },
+  };
+
+  const GROUP_HEADER_ROW =
+    6;
+  const SUBHEADER_ROW =
+    7;
+  const DATA_START_ROW =
+    8;
 
   for (
     const definisi of
@@ -1272,16 +1666,76 @@ export async function buatExportExcelPosga(
             index,
         );
 
-    const baseHeaders = [
-      "Tanggal POSGA",
-      "NIK",
-      "Nama",
-      "Tanggal Lahir",
-      "Jenis Kelamin",
-      "Alamat Domisili",
-      "RT",
-      "RW",
-      "Status Pemeriksaan",
+    const baseHeaders: Array<{
+      key: string;
+      label: string;
+      width: number;
+    }> = [
+      {
+        key: "no",
+        label: "NO",
+        width: 6,
+      },
+      {
+        key: "nik",
+        label: "NIK",
+        width: 20,
+      },
+      {
+        key: "nama",
+        label: "NAMA",
+        width: 28,
+      },
+      {
+        key: "noRm",
+        label: "NO. RM",
+        width: 14,
+      },
+      {
+        key: "noTelp",
+        label: "NO. TELP",
+        width: 16,
+      },
+      {
+        key: "tanggalLahir",
+        label: "TANGGAL LAHIR",
+        width: 16,
+      },
+      {
+        key: "jenisKelamin",
+        label: "JENIS KELAMIN",
+        width: 16,
+      },
+      {
+        key: "alamatKtp",
+        label: "ALAMAT KTP",
+        width: 30,
+      },
+      {
+        key: "rtKtp",
+        label: "RT KTP",
+        width: 9,
+      },
+      {
+        key: "rwKtp",
+        label: "RW KTP",
+        width: 9,
+      },
+      {
+        key: "alamatDomisili",
+        label: "ALAMAT DOMISILI",
+        width: 30,
+      },
+      {
+        key: "rtDomisili",
+        label: "RT DOM.",
+        width: 9,
+      },
+      {
+        key: "rwDomisili",
+        label: "RW DOM.",
+        width: 9,
+      },
     ];
 
     const childHeaders =
@@ -1294,9 +1748,27 @@ export async function buatExportExcelPosga(
         definisi.kode,
       )
         ? [
-            "Nama Ibu Kandung",
-            "NIK Ibu Kandung",
-            "Anak Ke",
+            {
+              key:
+                "namaIbuKandung",
+              label:
+                "NAMA IBU KANDUNG",
+              width: 26,
+            },
+            {
+              key:
+                "nikIbuKandung",
+              label:
+                "NIK IBU KANDUNG",
+              width: 20,
+            },
+            {
+              key:
+                "anakKe",
+              label:
+                "ANAK KE",
+              width: 10,
+            },
           ]
         : [];
 
@@ -1310,10 +1782,34 @@ export async function buatExportExcelPosga(
         definisi.kode,
       )
         ? [
-            "Nama Pasangan",
-            "NIK Pasangan",
-            "Jumlah Anak",
-            "KB",
+            {
+              key:
+                "namaPasangan",
+              label:
+                "NAMA PASANGAN",
+              width: 26,
+            },
+            {
+              key:
+                "nikPasangan",
+              label:
+                "NIK PASANGAN",
+              width: 20,
+            },
+            {
+              key:
+                "jumlahAnak",
+              label:
+                "JUMLAH ANAK",
+              width: 13,
+            },
+            {
+              key:
+                "kbYangDiikuti",
+              label:
+                "KB YANG DIIKUTI",
+              width: 20,
+            },
           ]
         : [];
 
@@ -1321,354 +1817,1062 @@ export async function buatExportExcelPosga(
       definisi.kode ===
         "ibu_hamil"
         ? [
-            "HPHT",
-            "HPL",
-            "BB Sebelum Hamil (kg)",
-            "TB Awal (cm)",
-            "LiLA Awal (cm)",
-            "Status Kehamilan",
+            {
+              key:
+                "hpht",
+              label:
+                "HPHT",
+              width: 15,
+            },
+            {
+              key:
+                "hpl",
+              label:
+                "HPL",
+              width: 15,
+            },
+            {
+              key:
+                "bbSebelumHamil",
+              label:
+                "BB SEBELUM HAMIL (KG)",
+              width: 20,
+            },
+            {
+              key:
+                "tbAwal",
+              label:
+                "TB AWAL (CM)",
+              width: 16,
+            },
+            {
+              key:
+                "lilaAwal",
+              label:
+                "LILA AWAL (CM)",
+              width: 16,
+            },
+            {
+              key:
+                "statusKehamilan",
+              label:
+                "STATUS KEHAMILAN",
+              width: 18,
+            },
           ]
         : definisi.kode ===
             "ibu_nifas"
           ? [
-              "Tanggal Melahirkan",
-              "Jam Bersalin",
-              "Cara Persalinan",
-              "Vitamin A",
-              "ASI Eksklusif",
-              "Tindakan Persalinan",
-              "Komplikasi Persalinan",
-              "Status Nifas",
+              {
+                key:
+                  "tanggalMelahirkan",
+                label:
+                  "TANGGAL MELAHIRKAN",
+                width: 18,
+              },
+              {
+                key:
+                  "jamBersalin",
+                label:
+                  "JAM BERSALIN",
+                width: 14,
+              },
+              {
+                key:
+                  "caraPersalinan",
+                label:
+                  "CARA PERSALINAN",
+                width: 20,
+              },
+              {
+                key:
+                  "vitaminA",
+                label:
+                  "VITAMIN A",
+                width: 12,
+              },
+              {
+                key:
+                  "asiEksklusif",
+                label:
+                  "ASI EKSKLUSIF",
+                width: 15,
+              },
+              {
+                key:
+                  "tindakanPersalinan",
+                label:
+                  "TINDAKAN PERSALINAN",
+                width: 26,
+              },
+              {
+                key:
+                  "komplikasiPersalinan",
+                label:
+                  "KOMPLIKASI PERSALINAN",
+                width: 26,
+              },
+              {
+                key:
+                  "statusNifas",
+                label:
+                  "STATUS NIFAS",
+                width: 16,
+              },
             ]
           : [];
 
-    const indicatorHeaders =
-      indikatorKategori.map(
-        (item) => {
-          const kelompok =
-            item.kelompok ===
-              "pemeriksaan"
-              ? "Pemeriksaan"
-              : item.kelompok ===
-                  "skrining"
-                ? "Skrining"
-                : "Konseling";
+    const staticHeaders = [
+      ...baseHeaders,
+      ...childHeaders,
+      ...adultHeaders,
+      ...reproHeaders,
+    ];
+
+    const tanggalSesi = [
+      ...new Set(
+        pesertaRows.map(
+          (row) =>
+            row.tanggalPosga,
+        ),
+      ),
+    ].sort();
+
+    const pesertaMap =
+      new Map<
+        string,
+        {
+          utama:
+            (typeof pesertaRows)[number];
+          sesi:
+            Map<
+              string,
+              (typeof pesertaRows)[number]
+            >;
+        }
+      >();
+
+    for (
+      const row of
+      pesertaRows
+    ) {
+      const current =
+        pesertaMap.get(
+          row.pesertaNik,
+        );
+
+      if (current) {
+        current.sesi.set(
+          row.tanggalPosga,
+          row,
+        );
+        continue;
+      }
+
+      pesertaMap.set(
+        row.pesertaNik,
+        {
+          utama:
+            row,
+          sesi:
+            new Map([
+              [
+                row.tanggalPosga,
+                row,
+              ],
+            ]),
+        },
+      );
+    }
+
+    const pesertaUnik = [
+      ...pesertaMap.values(),
+    ].sort(
+      (
+        a,
+        b,
+      ) =>
+        a.utama.nama.localeCompare(
+          b.utama.nama,
+          "id-ID",
+        ),
+    );
+
+    const indicatorBlock = [
+      {
+        kode:
+          "__STATUS_PEMERIKSAAN__",
+        nama:
+          "STATUS PEMERIKSAAN",
+        kelompok:
+          "status",
+        satuan:
+          null,
+      },
+      ...indikatorKategori,
+    ];
+
+    const worksheet =
+      workbook.addWorksheet(
+        definisi.sheet,
+      );
+
+    formatWorksheetUmum(
+      worksheet,
+    );
+
+    worksheet.pageSetup.printTitlesRow =
+      "1:7";
+
+    const totalColumns =
+      Math.max(
+        staticHeaders.length,
+        staticHeaders.length +
+          tanggalSesi.length *
+            indicatorBlock.length,
+      );
+
+    worksheet.mergeCells(
+      1,
+      1,
+      1,
+      totalColumns,
+    );
+
+    const titleCell =
+      worksheet.getCell(
+        1,
+        1,
+      );
+
+    titleCell.value =
+      `POSGA - ${definisi.label.toUpperCase()}`;
+    titleCell.font = {
+      bold: true,
+      color: {
+        argb:
+          WARNA.putih,
+      },
+      size: 16,
+    };
+    titleCell.alignment = {
+      horizontal:
+        "center",
+      vertical:
+        "middle",
+    };
+    isiSolid(
+      titleCell,
+      WARNA.hijauTua,
+    );
+    worksheet.getRow(1).height =
+      28;
+
+    const meta: Array<[
+      string,
+      string,
+    ]> = [
+      [
+        "Lokasi",
+        tempat.lokasiNama,
+      ],
+      [
+        "Posyandu",
+        tempat.nama,
+      ],
+      [
+        "Periode",
+        periodeLabel(
+          query,
+        ),
+      ],
+      [
+        "Peserta",
+        `${pesertaUnik.length} peserta unik / ${pesertaRows.length} kunjungan`,
+      ],
+    ];
+
+    meta.forEach(
+      (
+        [
+          label,
+          value,
+        ],
+        index,
+      ) => {
+        const rowNumber =
+          index +
+          2;
+
+        worksheet.getCell(
+          rowNumber,
+          1,
+        ).value =
+          label;
+        worksheet.getCell(
+          rowNumber,
+          1,
+        ).font = {
+          bold: true,
+        };
+        isiSolid(
+          worksheet.getCell(
+            rowNumber,
+            1,
+          ),
+          WARNA.hijauMuda,
+        );
+
+        const mergeEnd =
+          Math.min(
+            totalColumns,
+            Math.max(
+              4,
+              staticHeaders.length,
+            ),
+          );
+
+        worksheet.mergeCells(
+          rowNumber,
+          2,
+          rowNumber,
+          mergeEnd,
+        );
+        worksheet.getCell(
+          rowNumber,
+          2,
+        ).value =
+          value;
+
+        for (
+          let col = 1;
+          col <= mergeEnd;
+          col += 1
+        ) {
+          const cell =
+            worksheet.getCell(
+              rowNumber,
+              col,
+            );
+
+          beriBorder(
+            cell,
+          );
+          cell.alignment = {
+            vertical:
+              "middle",
+            wrapText: true,
+          };
+        }
+      },
+    );
+
+    if (
+      staticHeaders.length >
+      0
+    ) {
+      worksheet.mergeCells(
+        GROUP_HEADER_ROW,
+        1,
+        GROUP_HEADER_ROW,
+        staticHeaders.length,
+      );
+
+      const biodataGroupCell =
+        worksheet.getCell(
+          GROUP_HEADER_ROW,
+          1,
+        );
+
+      biodataGroupCell.value =
+        "IDENTITAS / BIODATA PESERTA";
+      biodataGroupCell.font = {
+        bold: true,
+        color: {
+          argb:
+            WARNA.putih,
+        },
+      };
+      biodataGroupCell.alignment = {
+        horizontal:
+          "center",
+        vertical:
+          "middle",
+      };
+      isiSolid(
+        biodataGroupCell,
+        WARNA.abuGelap,
+      );
+    }
+
+    staticHeaders.forEach(
+      (
+        header,
+        index,
+      ) => {
+        const col =
+          index +
+          1;
+        const cell =
+          worksheet.getCell(
+            SUBHEADER_ROW,
+            col,
+          );
+
+        cell.value =
+          header.label;
+        cell.font = {
+          bold: true,
+        };
+        cell.alignment = {
+          horizontal:
+            "center",
+          vertical:
+            "middle",
+          wrapText: true,
+        };
+        isiSolid(
+          cell,
+          WARNA.abu,
+        );
+        beriBorder(
+          cell,
+        );
+        worksheet.getColumn(
+          col,
+        ).width =
+          header.width;
+      },
+    );
+
+    let currentColumn =
+      staticHeaders.length +
+      1;
+
+    for (
+      const tanggal of
+      tanggalSesi
+    ) {
+      const startColumn =
+        currentColumn;
+      const endColumn =
+        startColumn +
+        indicatorBlock.length -
+        1;
+
+      worksheet.mergeCells(
+        GROUP_HEADER_ROW,
+        startColumn,
+        GROUP_HEADER_ROW,
+        endColumn,
+      );
+
+      const dateCell =
+        worksheet.getCell(
+          GROUP_HEADER_ROW,
+          startColumn,
+        );
+
+      dateCell.value =
+        `POSGA TANGGAL ${tanggalIndonesiaPanjang(tanggal)}`;
+      dateCell.font = {
+        bold: true,
+        color: {
+          argb:
+            WARNA.putih,
+        },
+      };
+      dateCell.alignment = {
+        horizontal:
+          "center",
+        vertical:
+          "middle",
+        wrapText: true,
+      };
+      isiSolid(
+        dateCell,
+        WARNA.hijauTua,
+      );
+
+      indicatorBlock.forEach(
+        (
+          item,
+          indicatorIndex,
+        ) => {
+          const col =
+            startColumn +
+            indicatorIndex;
+          const cell =
+            worksheet.getCell(
+              SUBHEADER_ROW,
+              col,
+            );
 
           const unit =
             item.satuan
               ? ` (${item.satuan})`
               : "";
 
-          return `${kelompok} | ${item.nama}${unit}`;
+          cell.value =
+            item.kode ===
+              "__STATUS_PEMERIKSAAN__"
+              ? item.nama
+              : `${item.nama}${unit}`;
+          cell.font = {
+            bold: true,
+            size: 10,
+          };
+          cell.alignment = {
+            horizontal:
+              "center",
+            vertical:
+              "middle",
+            wrapText: true,
+          };
+          isiSolid(
+            cell,
+            item.kelompok ===
+              "status"
+              ? WARNA.abu
+              : warnaKelompok(
+                  item.kelompok,
+                ),
+          );
+          beriBorder(
+            cell,
+          );
+          worksheet.getColumn(
+            col,
+          ).width =
+            item.kode ===
+              "__STATUS_PEMERIKSAAN__"
+              ? 16
+              : lebarIndikator(
+                  item.nama,
+                  item.satuan,
+                );
         },
       );
 
-    const header = [
-      ...baseHeaders,
-      ...childHeaders,
-      ...adultHeaders,
-      ...reproHeaders,
-      ...indicatorHeaders,
-    ];
+      currentColumn =
+        endColumn +
+        1;
+    }
 
-    const rows: unknown[][] =
-      [
-        [
-          `POSGA - ${definisi.label.toUpperCase()}`,
-        ],
-        [
-          "Lokasi",
-          tempat.lokasiNama,
-        ],
-        [
-          "Posyandu",
-          tempat.nama,
-        ],
-        [
-          "Periode",
-          periodeLabel(
-            query,
-          ),
-        ],
-        [],
-        header,
-      ];
+    worksheet.getRow(
+      GROUP_HEADER_ROW,
+    ).height =
+      24;
+    worksheet.getRow(
+      SUBHEADER_ROW,
+    ).height =
+      42;
 
     for (
-      const row of
-      pesertaRows
+      let col = 1;
+      col <= totalColumns;
+      col += 1
     ) {
-      const nilai =
-        new Map<
-          string,
-          unknown
-        >();
-
-      const pemeriksaan =
-        hasilMap.get(
-          `ps:${row.pesertaSesiId}`,
-        );
-
-      const skrining =
-        hasilMap.get(
-          `sk:${row.sesiId}:${row.pesertaNik}`,
-        );
-
-      for (
-        const [
-          key,
-          value,
-        ] of (
-          pemeriksaan ??
-          new Map()
-        )
-      ) {
-        nilai.set(
-          key,
-          value,
-        );
-      }
-
-      for (
-        const [
-          key,
-          value,
-        ] of (
-          skrining ??
-          new Map()
-        )
-      ) {
-        nilai.set(
-          key,
-          value,
-        );
-      }
-
-      const anak =
-        biodataAnakMap.get(
-          row.pesertaNik,
-        );
-
-      const dewasa =
-        biodataDewasaMap.get(
-          row.pesertaNik,
-        );
-
-      const kehamilan =
-        hamilRows.find(
-          (item) =>
-            item.pesertaNik ===
-              row.pesertaNik &&
-            item.tanggalMulai <=
-              row.tanggalPosga &&
-            (
-              item.tanggalSelesai ===
-                null ||
-              item.tanggalSelesai >=
-                row.tanggalPosga
-            ),
-        );
-
-      const nifas =
-        nifasRows.find(
-          (item) =>
-            item.pesertaNik ===
-              row.pesertaNik &&
-            item.tanggalMulai <=
-              row.tanggalPosga &&
-            (
-              item.tanggalSelesai ===
-                null ||
-              item.tanggalSelesai >=
-                row.tanggalPosga
-            ),
-        );
-
-      const baseValues = [
-        tanggalIndonesia(
-          row.tanggalPosga,
+      beriBorder(
+        worksheet.getCell(
+          GROUP_HEADER_ROW,
+          col,
         ),
-        row.pesertaNik,
-        row.nama,
-        tanggalIndonesia(
-          row.tanggalLahir,
+      );
+      beriBorder(
+        worksheet.getCell(
+          SUBHEADER_ROW,
+          col,
         ),
-        row.jenisKelamin ===
-          "L"
-          ? "Laki-laki"
-          : "Perempuan",
-        row.alamatDomisili ??
-          "",
-        row.rtDomisili ??
-          "",
-        row.rwDomisili ??
-          "",
-        row.statusPemeriksaan,
-      ];
+      );
+    }
 
-      const childValues =
-        childHeaders.length
-          ? [
+    pesertaUnik.forEach(
+      (
+        participant,
+        participantIndex,
+      ) => {
+        const rowNumber =
+          DATA_START_ROW +
+          participantIndex;
+        const row =
+          participant.utama;
+        const anak =
+          biodataAnakMap.get(
+            row.pesertaNik,
+          );
+        const dewasa =
+          biodataDewasaMap.get(
+            row.pesertaNik,
+          );
+
+        const sesiPertama = [
+          ...participant.sesi.values(),
+        ].sort(
+          (
+            a,
+            b,
+          ) =>
+            a.tanggalPosga.localeCompare(
+              b.tanggalPosga,
+            ),
+        )[0] ??
+          row;
+
+        const kehamilan =
+          hamilRows.find(
+            (item) =>
+              item.pesertaNik ===
+                row.pesertaNik &&
+              item.tanggalMulai <=
+                sesiPertama.tanggalPosga &&
+              (
+                item.tanggalSelesai ===
+                  null ||
+                item.tanggalSelesai >=
+                  sesiPertama.tanggalPosga
+              ),
+          );
+
+        const nifas =
+          nifasRows.find(
+            (item) =>
+              item.pesertaNik ===
+                row.pesertaNik &&
+              item.tanggalMulai <=
+                sesiPertama.tanggalPosga &&
+              (
+                item.tanggalSelesai ===
+                  null ||
+                item.tanggalSelesai >=
+                  sesiPertama.tanggalPosga
+              ),
+          );
+
+        const staticValues =
+          new Map<
+            string,
+            unknown
+          >([
+            [
+              "no",
+              participantIndex +
+                1,
+            ],
+            [
+              "nik",
+              row.pesertaNik,
+            ],
+            [
+              "nama",
+              row.nama,
+            ],
+            [
+              "noRm",
+              row.noRm ??
+                "",
+            ],
+            [
+              "noTelp",
+              row.noTelp ??
+                "",
+            ],
+            [
+              "tanggalLahir",
+              tanggalIndonesia(
+                row.tanggalLahir,
+              ),
+            ],
+            [
+              "jenisKelamin",
+              row.jenisKelamin ===
+                "L"
+                ? "Laki-laki"
+                : "Perempuan",
+            ],
+            [
+              "alamatKtp",
+              row.alamatKtp ??
+                "",
+            ],
+            [
+              "rtKtp",
+              row.rtKtp ??
+                "",
+            ],
+            [
+              "rwKtp",
+              row.rwKtp ??
+                "",
+            ],
+            [
+              "alamatDomisili",
+              row.alamatDomisili ??
+                "",
+            ],
+            [
+              "rtDomisili",
+              row.rtDomisili ??
+                "",
+            ],
+            [
+              "rwDomisili",
+              row.rwDomisili ??
+                "",
+            ],
+            [
+              "namaIbuKandung",
               anak?.namaIbuKandung ??
                 "",
+            ],
+            [
+              "nikIbuKandung",
               anak?.nikIbuKandung ??
                 "",
+            ],
+            [
+              "anakKe",
               anak?.anakKe ??
                 "",
-            ]
-          : [];
-
-      const adultValues =
-        adultHeaders.length
-          ? [
+            ],
+            [
+              "namaPasangan",
               dewasa?.namaPasangan ??
                 "",
+            ],
+            [
+              "nikPasangan",
               dewasa?.nikPasangan ??
                 "",
+            ],
+            [
+              "jumlahAnak",
               dewasa?.jumlahAnak ??
                 "",
+            ],
+            [
+              "kbYangDiikuti",
               dewasa?.kbYangDiikuti ??
                 "",
-            ]
-          : [];
-
-      const reproValues =
-        definisi.kode ===
-          "ibu_hamil"
-          ? [
+            ],
+            [
+              "hpht",
               tanggalIndonesia(
                 kehamilan?.hpht,
               ),
+            ],
+            [
+              "hpl",
               tanggalIndonesia(
                 kehamilan?.hpl,
               ),
+            ],
+            [
+              "bbSebelumHamil",
               kehamilan?.bbSebelumHamilKg ??
                 "",
+            ],
+            [
+              "tbAwal",
               kehamilan?.tbCm ??
                 "",
+            ],
+            [
+              "lilaAwal",
               kehamilan?.lilaAwalCm ??
                 "",
+            ],
+            [
+              "statusKehamilan",
               kehamilan?.status ??
                 "",
-            ]
-          : definisi.kode ===
-              "ibu_nifas"
-            ? [
-                tanggalIndonesia(
-                  nifas?.tanggalMelahirkan,
-                ),
-                nifas?.jamBersalin ??
-                  "",
-                nifas?.caraPersalinan ??
-                  "",
-                nilaiBoolean(
-                  nifas?.vitaminA,
-                ),
-                nilaiBoolean(
-                  nifas?.asiEksklusif,
-                ),
-                nifas
-                  ? (
-                      tindakanMap.get(
-                        nifas.id,
-                      ) ??
-                      []
-                    ).join(", ")
-                  : "",
-                nifas
-                  ? (
-                      komplikasiMap.get(
-                        nifas.id,
-                      ) ??
-                      []
-                    ).join(", ")
-                  : "",
-                nifas?.status ??
-                  "",
-              ]
-            : [];
+            ],
+            [
+              "tanggalMelahirkan",
+              tanggalIndonesia(
+                nifas?.tanggalMelahirkan,
+              ),
+            ],
+            [
+              "jamBersalin",
+              nifas?.jamBersalin ??
+                "",
+            ],
+            [
+              "caraPersalinan",
+              nifas?.caraPersalinan ??
+                "",
+            ],
+            [
+              "vitaminA",
+              nilaiBoolean(
+                nifas?.vitaminA,
+              ),
+            ],
+            [
+              "asiEksklusif",
+              nilaiBoolean(
+                nifas?.asiEksklusif,
+              ),
+            ],
+            [
+              "tindakanPersalinan",
+              nifas
+                ? (
+                    tindakanMap.get(
+                      nifas.id,
+                    ) ??
+                    []
+                  ).join(
+                    ", ",
+                  )
+                : "",
+            ],
+            [
+              "komplikasiPersalinan",
+              nifas
+                ? (
+                    komplikasiMap.get(
+                      nifas.id,
+                    ) ??
+                    []
+                  ).join(
+                    ", ",
+                  )
+                : "",
+            ],
+            [
+              "statusNifas",
+              nifas?.status ??
+                "",
+            ],
+          ]);
 
-      rows.push([
-        ...baseValues,
-        ...childValues,
-        ...adultValues,
-        ...reproValues,
-        ...indikatorKategori.map(
-          (item) =>
-            nilai.get(
-              item.kode,
-            ) ??
-            "",
-        ),
-      ]);
-    }
+        staticHeaders.forEach(
+          (
+            header,
+            index,
+          ) => {
+            const cell =
+              worksheet.getCell(
+                rowNumber,
+                index +
+                  1,
+              );
 
-    const sheet =
-      XLSX.utils.aoa_to_sheet(
-        rows,
-      );
+            setNilaiCell(
+              cell,
+              staticValues.get(
+                header.key,
+              ) ??
+                "",
+            );
+            beriBorder(
+              cell,
+            );
+            cell.alignment = {
+              vertical:
+                "top",
+              horizontal:
+                header.key ===
+                  "no"
+                  ? "center"
+                  : "left",
+              wrapText: true,
+            };
+          },
+        );
 
-    const lastColumn =
+        let dataColumn =
+          staticHeaders.length +
+          1;
+
+        for (
+          const tanggal of
+          tanggalSesi
+        ) {
+          const sesi =
+            participant.sesi.get(
+              tanggal,
+            );
+
+          let nilai =
+            new Map<
+              string,
+              unknown
+            >();
+
+          if (sesi) {
+            nilai =
+              new Map();
+
+            const pemeriksaan =
+              hasilMap.get(
+                `ps:${sesi.pesertaSesiId}`,
+              );
+            const skrining =
+              hasilMap.get(
+                `sk:${sesi.sesiId}:${sesi.pesertaNik}`,
+              );
+
+            for (
+              const [
+                key,
+                value,
+              ] of (
+                pemeriksaan ??
+                new Map()
+              )
+            ) {
+              nilai.set(
+                key,
+                value,
+              );
+            }
+
+            for (
+              const [
+                key,
+                value,
+              ] of (
+                skrining ??
+                new Map()
+              )
+            ) {
+              nilai.set(
+                key,
+                value,
+              );
+            }
+          }
+
+          indicatorBlock.forEach(
+            (
+              item,
+              indicatorIndex,
+            ) => {
+              const cell =
+                worksheet.getCell(
+                  rowNumber,
+                  dataColumn +
+                    indicatorIndex,
+                );
+
+              const value =
+                item.kode ===
+                  "__STATUS_PEMERIKSAAN__"
+                  ? sesi?.statusPemeriksaan ??
+                    ""
+                  : nilai.get(
+                      item.kode,
+                    ) ??
+                    "";
+
+              setNilaiCell(
+                cell,
+                value,
+              );
+              beriBorder(
+                cell,
+              );
+              cell.alignment = {
+                vertical:
+                  "top",
+                horizontal:
+                  typeof value ===
+                    "number"
+                    ? "center"
+                    : "left",
+                wrapText: true,
+              };
+
+              if (
+                participantIndex %
+                  2 ===
+                1
+              ) {
+                isiSolid(
+                  cell,
+                  WARNA.hijauSangatMuda,
+                );
+              }
+            },
+          );
+
+          dataColumn +=
+            indicatorBlock.length;
+        }
+
+        if (
+          participantIndex %
+            2 ===
+          1
+        ) {
+          staticHeaders.forEach(
+            (
+              _,
+              index,
+            ) => {
+              isiSolid(
+                worksheet.getCell(
+                  rowNumber,
+                  index +
+                    1,
+                ),
+                WARNA.hijauSangatMuda,
+              );
+            },
+          );
+        }
+      },
+    );
+
+    const lastDataRow =
       Math.max(
-        0,
-        header.length -
+        SUBHEADER_ROW,
+        DATA_START_ROW +
+          pesertaUnik.length -
           1,
       );
 
-    sheet["!merges"] = [
-      {
-        s: {
-          r: 0,
-          c: 0,
-        },
-        e: {
-          r: 0,
-          c:
-            lastColumn,
-        },
+    worksheet.autoFilter = {
+      from: {
+        row:
+          SUBHEADER_ROW,
+        column: 1,
       },
-    ];
-
-    sheet["!autofilter"] = {
-      ref:
-        XLSX.utils.encode_range({
-          s: {
-            r: 5,
-            c: 0,
-          },
-          e: {
-            r: Math.max(
-              5,
-              rows.length -
-                1,
-            ),
-            c:
-              lastColumn,
-          },
-        }),
+      to: {
+        row:
+          lastDataRow,
+        column:
+          totalColumns,
+      },
     };
 
-    sheet["!cols"] =
-      autoLebar(
-        rows,
-      );
-
-    XLSX.utils.book_append_sheet(
-      workbook,
-      sheet,
-      definisi.sheet,
-    );
+    worksheet.views = [
+      {
+        state:
+          "frozen",
+        // Hanya NO, NIK, dan NAMA (kolom A-C) yang tetap terlihat.
+        xSplit: 3,
+        ySplit:
+          SUBHEADER_ROW,
+        topLeftCell:
+          worksheet.getCell(
+            DATA_START_ROW,
+            4,
+          ).address,
+      },
+    ];
   }
 
+  const excelBuffer =
+    await workbook.xlsx.writeBuffer();
+
   const buffer =
-    XLSX.write(
-      workbook,
-      {
-        type: "buffer",
-        bookType: "xlsx",
-        compression: true,
-      },
-    ) as Buffer;
+    Buffer.from(
+      excelBuffer,
+    );
 
   const sesiTerpilih =
     query.sesiId &&

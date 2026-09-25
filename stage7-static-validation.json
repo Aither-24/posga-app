@@ -1,0 +1,26 @@
+{
+  "actualCounts": {
+    "sessions": 386,
+    "participantSessions": 21118,
+    "examinationResults": 100282,
+    "counselingResults": 1104,
+    "counselingOptions": 1110,
+    "screenings": 1387,
+    "biodataAnak": 3345,
+    "biodataDewasa": 2741,
+    "pregnancyEpisodes": 82,
+    "postpartumEpisodes": 132,
+    "complications": 8,
+    "actions": 0
+  },
+  "staticErrorCount": 0,
+  "firstErrors": [],
+  "baselineForeignKeyViolations": 0,
+  "readyForFinalRunner": true,
+  "temporalValidation": {
+    "sessionBeforeBirth": 0,
+    "screeningBeforeBirth": 0,
+    "pregnancyBeforeBirth": 0,
+    "postpartumBeforeBirth": 0
+  }
+}

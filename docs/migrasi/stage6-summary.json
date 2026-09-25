@@ -1,0 +1,179 @@
+{
+  "name": "Audit Rekonsiliasi Historis POSGA Tahap 6",
+  "generatedAt": "2026-09-25",
+  "finalSeedCounts": {
+    "sessions": 386,
+    "participantSessions": 21121,
+    "examinationResults": 100291,
+    "counselingResults": 1104,
+    "counselingOptions": 1110,
+    "screenings": 1387,
+    "biodataAnak": 3345,
+    "biodataDewasa": 2741,
+    "pregnancyEpisodes": 82,
+    "postpartumEpisodes": 134,
+    "complications": 8,
+    "actions": 0
+  },
+  "overlap": {
+    "participantOverlapReplacedByReproduction": 9,
+    "resultOverlapSame": 7,
+    "resultOverlapReplacedByReproduction": 4,
+    "screeningOverlapSame": 1,
+    "conflicts": 0
+  },
+  "dateRange": {
+    "min": "2025-01-11",
+    "max": "2026-09-21",
+    "sessionsByYear": {
+      "2025": 1,
+      "2026": 385
+    }
+  },
+  "categorySnapshotCounts": {
+    "sekolah": 2137,
+    "dewasa": 5926,
+    "lansia": 5020,
+    "balita": 6012,
+    "prasekolah": 892,
+    "bayi": 1024,
+    "ibu_hamil": 84,
+    "ibu_nifas": 26
+  },
+  "sourceCategoryCounts": {
+    "usia": 21011,
+    "kehamilan": 84,
+    "nifas": 26
+  },
+  "databaseBaseline": {
+    "sesi_posga": 1,
+    "peserta_sesi_posga": 85,
+    "hasil_pemeriksaan": 0,
+    "hasil_konseling": 0,
+    "hasil_konseling_opsi": 0,
+    "hasil_skrining": 0,
+    "biodata_anak": 0,
+    "biodata_dewasa": 0,
+    "episode_kehamilan": 0,
+    "episode_nifas": 0,
+    "komplikasi_persalinan": 0
+  },
+  "databaseAfterRawSimulation": {
+    "sesi_posga": 387,
+    "peserta_sesi_posga": 21206,
+    "hasil_pemeriksaan": 100291,
+    "hasil_konseling": 1104,
+    "hasil_konseling_opsi": 1110,
+    "hasil_skrining": 1387,
+    "biodata_anak": 3345,
+    "biodata_dewasa": 2741,
+    "episode_kehamilan": 82,
+    "episode_nifas": 134,
+    "komplikasi_persalinan": 8
+  },
+  "simulationChecks": {
+    "duplicateSessions": 0,
+    "duplicateParticipantSessions": 0,
+    "duplicateExaminationResults": 0,
+    "foreignKeyViolations": 0,
+    "baselineOperationalSessionPreserved": 1
+  },
+  "review": {
+    "name": "Rekonsiliasi Review Historis POSGA Tahap 6",
+    "generatedAt": "2026-09-25",
+    "rawEvents": 9316,
+    "uniqueFingerprints": 9262,
+    "statusCounts": {
+      "open_review": 8096,
+      "resolved_by_rule": 113,
+      "informational_exclusion": 1107
+    },
+    "stageCounts": {
+      "3": 2855,
+      "4": 5747,
+      "5": 714
+    }
+  },
+  "reviewCountsByStageAndReason": {
+    "3": {
+      "biodata_invalid": 152,
+      "screening_undated_static": 309,
+      "monthly_invalid_value": 1388,
+      "screening_invalid_result": 37,
+      "biodata_field_conflict": 102,
+      "monthly_category_nonadjacent": 107,
+      "monthly_deferred_exact_nonchild_source": 23,
+      "monthly_no_valid_values": 36,
+      "monthly_identity_not_master": 228,
+      "screening_invalid_or_missing_date": 84,
+      "monthly_multisource_ambiguous": 1,
+      "screening_date_out_of_scope": 22,
+      "monthly_indicator_conflict": 242,
+      "monthly_counseling_unmapped": 5,
+      "monthly_invalid_td": 6,
+      "monthly_deferred_reproductive_priority": 11,
+      "screening_schema_gap": 14,
+      "monthly_unresolved_date": 88
+    },
+    "4": {
+      "monthly_identity_not_master": 2081,
+      "biodata_placeholder": 660,
+      "monthly_invalid_value": 558,
+      "monthly_invalid_td": 101,
+      "monthly_indicator_conflict": 749,
+      "biodata_invalid": 114,
+      "biodata_static_tb_invalid": 10,
+      "screening_identity_not_master": 236,
+      "screening_derived_redundant": 61,
+      "screening_invalid_or_missing_date": 483,
+      "screening_invalid_result": 122,
+      "monthly_category_nonadjacent": 31,
+      "monthly_counseling_unmapped": 78,
+      "screening_date_out_of_scope": 69,
+      "screening_unmapped": 26,
+      "screening_schema_gap": 33,
+      "monthly_unresolved_date": 97,
+      "biodata_field_conflict": 45,
+      "monthly_no_valid_values": 189,
+      "monthly_stale_source_discarded": 4
+    },
+    "5": {
+      "identity_not_master_same_posyandu": 17,
+      "pregnancy_static_invalid": 25,
+      "identity_not_female": 7,
+      "nifas_static_invalid": 19,
+      "identity_invalid_nik": 15,
+      "monthly_invalid_td": 64,
+      "screening_date_out_of_scope": 1,
+      "screening_invalid_or_missing_date": 9,
+      "monthly_invalid_value": 111,
+      "monthly_no_valid_values": 128,
+      "screening_undated_static": 9,
+      "nifas_static_tb_schema_gap": 49,
+      "nifas_complication_unmapped": 1,
+      "screening_invalid_result": 4,
+      "monthly_screening_dm_schema_gap": 1,
+      "monthly_derived_visit_unmapped": 1,
+      "monthly_unresolved_date": 6,
+      "monthly_both_hamil_nifas_same_date": 1,
+      "monthly_indicator_conflict": 3,
+      "pregnancy_no_start_date": 39,
+      "pregnancy_hpht_hpl_invalid_order": 4,
+      "nifas_no_start_date": 7,
+      "nifas_pregnancy_link_unresolved": 82,
+      "pregnancy_stale_without_observed_end_deferred": 95,
+      "pregnancy_closed_at_last_observed_session": 14,
+      "pregnancy_future_start_date": 2
+    }
+  },
+  "operationalSession": {
+    "date": "2026-09-30",
+    "posyandu": "KM ARJUNA",
+    "preserved": true
+  },
+  "notes": [
+    "Simulasi memasukkan hasil dasar non-derived; indikator derived tidak dimasukkan manual dan akan dihitung oleh service POSGA saat commit final.",
+    "Seed final sudah menggabungkan prioritas reproduksi di atas kategori usia.",
+    "Tidak ada konflik struktural pada accepted seed."
+  ]
+}

@@ -1,8 +1,8 @@
 import assert from "node:assert/strict";
 
-import request from "supertest";
+import ExcelJS from "@ayocore/exceljs";
 
-import * as XLSX from "xlsx";
+import request from "supertest";
 
 import {
   asc,
@@ -124,17 +124,17 @@ async function main() {
   );
 
   const workbook =
-    XLSX.read(
-      body,
-      {
-        type: "buffer",
-      },
-    );
+    new ExcelJS.Workbook();
+
+  await workbook.xlsx.load(
+    body as any,
+  );
 
   assert.ok(
-    workbook.SheetNames.includes(
+    workbook.getWorksheet(
       "Ringkasan",
     ),
+    "Sheet Ringkasan tidak ditemukan.",
   );
 
   for (
@@ -149,16 +149,81 @@ async function main() {
       "Ibu Nifas",
     ]
   ) {
-    assert.ok(
-      workbook.SheetNames.includes(
+    const worksheet =
+      workbook.getWorksheet(
         sheet,
-      ),
+      );
+
+    assert.ok(
+      worksheet,
       `Sheet ${sheet} tidak ditemukan.`,
+    );
+
+    assert.equal(
+      worksheet.getCell(
+        "A6",
+      ).value,
+      "IDENTITAS / BIODATA PESERTA",
+      `Header biodata ${sheet} tidak sesuai.`,
+    );
+
+    assert.equal(
+      worksheet.getCell(
+        "A1",
+      ).isMerged,
+      true,
+      `Judul sheet ${sheet} harus merged.`,
+    );
+
+    assert.equal(
+      worksheet.views[0]?.state,
+      "frozen",
+      `Freeze pane ${sheet} tidak aktif.`,
     );
   }
 
+  const punyaBlokTanggal =
+    workbook.worksheets
+      .filter(
+        (worksheet) =>
+          worksheet.name !==
+          "Ringkasan",
+      )
+      .some(
+        (worksheet) => {
+          const values =
+            worksheet
+              .getRow(6)
+              .values;
+
+          if (
+            !Array.isArray(
+              values,
+            )
+          ) {
+            return false;
+          }
+
+          return values.some(
+            (value) =>
+              String(
+                value ??
+                  "",
+              ).startsWith(
+                "POSGA TANGGAL ",
+              ),
+          );
+        },
+      );
+
+  assert.equal(
+    punyaBlokTanggal,
+    true,
+    "Tidak ada blok POSGA per tanggal pada workbook export.",
+  );
+
   console.log(
-    "TEST EXPORT EXCEL POSGA BERHASIL",
+    "TEST EXPORT EXCELJS POSGA BERHASIL",
   );
 }
 
